@@ -1,0 +1,23 @@
+# Project TODO
+
+- [x] Define a reusable Simply Saturn visual system with a dark-on-light palette, Saturn ring motifs, celestial gradients, accessible type scale, and reduced-motion-safe animation tokens.
+- [x] Create shared responsive public-site navigation with the Simply Saturn logo, all required marketing routes, and visible Get Started, Request Demo, and Sign In calls to action.
+- [x] Build a responsive SEO-ready Home page with the required hero copy, exactly labeled Get Started, Request Demo, and Sign In CTAs, seven capability areas, product philosophy, proof-point placeholders, and conversion sections.
+- [x] Build a responsive SEO-ready Product Overview page explaining contacts, deals, pipelines, portals, team assignment groups, automations, and shared real-estate operations data.
+- [x] Build a responsive SEO-ready Features page covering Contact Management, Deal Pipelines, Team Coordination, Client Portal, Automation, Document/Compliance Workflow, and Integration-friendly architecture.
+- [x] Build a responsive SEO-ready Pricing page with transparent plan structure and clearly marked pricing placeholders ready for finalized commercial details.
+- [x] Build a responsive SEO-ready About / Vision page communicating the operational-command-center vision, human-verified automation, modular architecture, and role-based access.
+- [x] Build a responsive Contact / Demo Request page with accessible form fields, validation-ready states, and clear placeholders for production routing.
+- [x] Build a comprehensive shared footer with clearly marked placeholders for legal, social, contact, and future-content links.
+- [x] Build a polished Login page with email/password controls, forgotten-password entry, organization-creation entry, invite-acceptance entry, security trust copy, and app fallback routing.
+- [x] Build an Organization Creation / onboarding page for a brokerage or team workspace with staged form structure and invitation-ready language.
+- [x] Build an Invite Acceptance page and a password recovery entry page that preserve the Simply Saturn visual language.
+- [x] Build an authenticated-style dashboard shell with sidebar items in this exact order: Dashboard, Contacts, Deals, Calendar, Tasks, Documents, Marketing, Automations, Reports, Administration.
+- [x] Add a dashboard top bar with search, notifications, profile controls, and polished placeholder widgets that reflect real estate operating workflows.
+- [x] Add purposeful motion including hero entrances, card reveals, hover elevation, and soft transitions that are fully disabled or reduced under prefers-reduced-motion.
+- [x] Add route-level metadata and document title behavior for SEO-ready public pages.
+- [x] Add automated tests covering routing, critical CTA destinations, dashboard navigation order, and reduced-motion-safe component behavior where practical.
+- [x] Verify desktop and mobile layouts, keyboard access, visual contrast, route navigation, and development-server health.
+- [x] Verify the required contact, login, organization onboarding, invite, and recovery controls in their implemented page sources.
+- [x] Expand automated coverage to validate actual route wiring, public-page SEO use, and critical access-flow copy.
+- [x] Complete and document an explicit keyboard-focus and visual-contrast verification pass before checkpointing.
