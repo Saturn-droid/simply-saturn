@@ -21,3 +21,4 @@
 - [x] Verify the required contact, login, organization onboarding, invite, and recovery controls in their implemented page sources.
 - [x] Expand automated coverage to validate actual route wiring, public-page SEO use, and critical access-flow copy.
 - [x] Complete and document an explicit keyboard-focus and visual-contrast verification pass before checkpointing.
+- [x] Fix the duplicate ReactDOM createRoot initialization warning on the home page and add regression coverage for a single root mount.
