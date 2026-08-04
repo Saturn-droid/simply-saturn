@@ -22,3 +22,15 @@
 - [x] Expand automated coverage to validate actual route wiring, public-page SEO use, and critical access-flow copy.
 - [x] Complete and document an explicit keyboard-focus and visual-contrast verification pass before checkpointing.
 - [x] Fix the duplicate ReactDOM createRoot initialization warning on the home page and add regression coverage for a single root mount.
+- [x] Diagnose the SMS delivery failure, secure the Twilio credential configuration, and validate the integration without sending a production message.
+- [x] Verify the Twilio queued response and trial-account delivery constraints, then define the approved Simply Saturn SMS notification flow.
+- [x] Identify the non-demo SMS action that is failing and select a server-only trial-compatible authentication fallback before any platform integration.
+- [x] Determine why the reported Twilio message response has no corresponding Messaging Log entry before treating it as a live delivery attempt — later Console evidence confirmed the expected delivered entries.
+- [x] Diagnose and repair the Simply Saturn inbox/text-page send action, which previously did not reach Twilio despite successful direct Twilio delivery.
+- [x] Build a responsive Inbox/Text module with conversation list, message timeline, recipient controls, and draft composition states.
+- [x] Add secure server-side SMS procedures using rotated server-only Twilio credentials, with all credentials held outside browser code.
+- [x] Add messaging data models and tests for conversation validation, draft handling, send safeguards, provider-error mapping, and a read-only credential probe.
+- [x] Validate the Inbox/Text module’s responsive, keyboard-accessible UI and require an explicit approval before any live send.
+- [x] Support a Twilio trial configuration using an approved direct sender number when no Messaging Service SID is available.
+- [ ] Obtain explicit confirmation of the recipient and exact message body before dispatching the first live SMS from Simply Saturn.
+- [ ] Replace the trial Auth Token fallback with a restricted Twilio API key after the account supports that credential model.

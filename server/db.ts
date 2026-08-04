@@ -1,6 +1,13 @@
-import { eq } from "drizzle-orm";
+import { and, desc, eq } from "drizzle-orm";
 import { drizzle } from "drizzle-orm/mysql2";
-import { InsertUser, users } from "../drizzle/schema";
+import {
+  InsertUser,
+  SmsConversation,
+  SmsMessage,
+  smsConversations,
+  smsMessages,
+  users,
+} from "../drizzle/schema";
 import { ENV } from './_core/env';
 
 let _db: ReturnType<typeof drizzle> | null = null;
@@ -89,4 +96,146 @@ export async function getUserByOpenId(openId: string) {
   return result.length > 0 ? result[0] : undefined;
 }
 
-// TODO: add feature queries here as your schema grows.
+export async function listSmsConversations(ownerUserId: number): Promise<SmsConversation[]> {
+  const db = await getDb();
+  if (!db) return [];
+
+  return db
+    .select()
+    .from(smsConversations)
+    .where(eq(smsConversations.ownerUserId, ownerUserId))
+    .orderBy(desc(smsConversations.updatedAt));
+}
+
+export async function getSmsConversation(ownerUserId: number, conversationId: number): Promise<SmsConversation | undefined> {
+  const db = await getDb();
+  if (!db) return undefined;
+
+  const rows = await db
+    .select()
+    .from(smsConversations)
+    .where(and(eq(smsConversations.ownerUserId, ownerUserId), eq(smsConversations.id, conversationId)))
+    .limit(1);
+
+  return rows[0];
+}
+
+export async function listSmsMessages(ownerUserId: number, conversationId: number): Promise<SmsMessage[]> {
+  const db = await getDb();
+  if (!db) return [];
+
+  return db
+    .select()
+    .from(smsMessages)
+    .where(and(eq(smsMessages.ownerUserId, ownerUserId), eq(smsMessages.conversationId, conversationId)))
+    .orderBy(smsMessages.createdAt);
+}
+
+export async function findSmsMessageByClientId(ownerUserId: number, clientMessageId: string): Promise<SmsMessage | undefined> {
+  const db = await getDb();
+  if (!db) return undefined;
+
+  const rows = await db
+    .select()
+    .from(smsMessages)
+    .where(and(eq(smsMessages.ownerUserId, ownerUserId), eq(smsMessages.clientMessageId, clientMessageId)))
+    .limit(1);
+
+  return rows[0];
+}
+
+export async function findOrCreateSmsConversation(input: {
+  ownerUserId: number;
+  contactPhone: string;
+  contactName?: string;
+}): Promise<SmsConversation> {
+  const db = await getDb();
+  if (!db) throw new Error("Database is not available for SMS conversations.");
+
+  const existing = await db
+    .select()
+    .from(smsConversations)
+    .where(and(eq(smsConversations.ownerUserId, input.ownerUserId), eq(smsConversations.contactPhone, input.contactPhone)))
+    .limit(1);
+
+  if (existing[0]) return existing[0];
+
+  await db.insert(smsConversations).values({
+    ownerUserId: input.ownerUserId,
+    contactName: input.contactName?.trim() || null,
+    contactPhone: input.contactPhone,
+    lastMessageAt: new Date(),
+  });
+
+  const created = await db
+    .select()
+    .from(smsConversations)
+    .where(and(eq(smsConversations.ownerUserId, input.ownerUserId), eq(smsConversations.contactPhone, input.contactPhone)))
+    .limit(1);
+
+  if (!created[0]) throw new Error("SMS conversation could not be created.");
+  return created[0];
+}
+
+export async function createOutboundSmsMessage(input: {
+  ownerUserId: number;
+  conversationId: number;
+  body: string;
+  clientMessageId: string;
+}): Promise<SmsMessage> {
+  const db = await getDb();
+  if (!db) throw new Error("Database is not available for SMS messages.");
+
+  await db.insert(smsMessages).values({
+    ownerUserId: input.ownerUserId,
+    conversationId: input.conversationId,
+    body: input.body,
+    direction: "outbound",
+    deliveryStatus: "queued",
+    clientMessageId: input.clientMessageId,
+  });
+
+  const created = await findSmsMessageByClientId(input.ownerUserId, input.clientMessageId);
+  if (!created) throw new Error("SMS message could not be created.");
+  return created;
+}
+
+export async function updateSmsMessageDelivery(input: {
+  messageId: number;
+  deliveryStatus: "queued" | "sent" | "delivered" | "undelivered" | "failed";
+  providerMessageSid?: string;
+  errorCode?: string;
+  errorMessage?: string;
+}): Promise<SmsMessage | undefined> {
+  const db = await getDb();
+  if (!db) return undefined;
+
+  await db
+    .update(smsMessages)
+    .set({
+      deliveryStatus: input.deliveryStatus,
+      providerMessageSid: input.providerMessageSid ?? null,
+      errorCode: input.errorCode ?? null,
+      errorMessage: input.errorMessage ?? null,
+    })
+    .where(eq(smsMessages.id, input.messageId));
+
+  const rows = await db.select().from(smsMessages).where(eq(smsMessages.id, input.messageId)).limit(1);
+  return rows[0];
+}
+
+export async function touchSmsConversation(input: {
+  conversationId: number;
+  body: string;
+}): Promise<void> {
+  const db = await getDb();
+  if (!db) return;
+
+  await db
+    .update(smsConversations)
+    .set({
+      lastMessagePreview: input.body.slice(0, 512),
+      lastMessageAt: new Date(),
+    })
+    .where(eq(smsConversations.id, input.conversationId));
+}

@@ -6,6 +6,7 @@ import Dashboard from "@/pages/Dashboard";
 import Features from "@/pages/Features";
 import ForgotPassword from "@/pages/ForgotPassword";
 import Home from "@/pages/Home";
+import Inbox from "@/pages/Inbox";
 import Invite from "@/pages/Invite";
 import LegalPlaceholder from "@/pages/LegalPlaceholder";
 import Login from "@/pages/Login";
@@ -31,6 +32,7 @@ function Router() {
       <Route path="/invite" component={Invite} />
       <Route path="/forgot-password" component={ForgotPassword} />
       <Route path="/app" component={Dashboard} />
+      <Route path="/app/inbox" component={Inbox} />
       <Route path="/privacy" component={LegalPlaceholder} />
       <Route path="/terms" component={LegalPlaceholder} />
       <Route path="/security" component={LegalPlaceholder} />
