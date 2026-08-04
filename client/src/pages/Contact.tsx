@@ -1,21 +1,43 @@
-import { OrbitBackdrop } from "@/components/OrbitBackdrop";
-import { Seo } from "@/components/Seo";
+import { ArrowRight, CheckCircle2, Clock3, ShieldCheck } from "lucide-react";
+import { useState } from "react";
 import { MarketingLayout } from "@/components/marketing/MarketingLayout";
-import { ArrowRight, CheckCircle2, Clock3, Mail, ShieldCheck } from "lucide-react";
-import { FormEvent, useState } from "react";
+import { Seo } from "@/components/Seo";
 
 export default function Contact() {
   const [submitted, setSubmitted] = useState(false);
 
-  function submitRequest(event: FormEvent<HTMLFormElement>) {
-    event.preventDefault();
-    setSubmitted(true);
-  }
-
   return (
     <MarketingLayout>
-      <Seo title="Request a demo" description="Start a conversation with Simply Saturn about a unified real estate operations platform for your brokerage or team." />
-      <section className="relative isolate overflow-hidden bg-[#f5f3ec] py-16 sm:py-24"><OrbitBackdrop /><div className="container relative grid gap-10 lg:grid-cols-[.82fr_1.18fr] lg:items-start"><div className="max-w-xl"><div className="ss-eyebrow"><span className="ss-kicker-dot" />Request a demonstration</div><h1 className="mt-6 text-5xl leading-[.98] text-[#171b39] sm:text-6xl">Start with the way your operation actually works.</h1><p className="mt-6 text-base leading-7 text-[#5c6179]">Tell us where your current handoffs, relationship records, workflow controls, or client experiences need more alignment. We will use the conversation to understand the right next step.</p><div className="mt-10 space-y-5">{[[ShieldCheck, "A considered conversation", "We will start from your team structure and service model—not a generic sales script."], [Clock3, "Ready for your process", "Bring existing workflows, handoff questions, and service concerns into the discussion."], [Mail, "[Ready for real contact details]", "Production response commitments and contact destinations will be finalized with the launch team."]].map(([Icon, title, body]) => { const ItemIcon = Icon as typeof ShieldCheck; return <div key={title as string} className="flex gap-3"><span className="grid h-9 w-9 shrink-0 place-items-center rounded-xl bg-white/75 text-[#5a4c78]"><ItemIcon size={18} /></span><div><h2 className="font-sans text-sm font-extrabold text-[#292e50]">{title as string}</h2><p className="mt-1 text-sm leading-6 text-[#6b7087]">{body as string}</p></div></div>; })}</div></div><div className="rounded-[1.5rem] border border-[#171b39]/9 bg-white/85 p-6 shadow-[0_30px_80px_rgba(26,30,59,.10)] sm:p-8">{submitted ? <div className="flex min-h-[28rem] flex-col justify-center text-center"><span className="mx-auto grid h-14 w-14 place-items-center rounded-full bg-[#edf3e8] text-[#5d7c58]"><CheckCircle2 size={28} /></span><h2 className="mt-6 text-3xl text-[#202547]">Request recorded for this foundation.</h2><p className="mx-auto mt-4 max-w-md text-sm leading-6 text-[#697087]">This prototype confirms the interaction locally. Connect this form to your approved lead-routing workflow before production use.</p><button type="button" onClick={() => setSubmitted(false)} className="ss-button-secondary mx-auto mt-7">Send another request</button></div> : <form onSubmit={submitRequest}><div className="flex items-baseline justify-between gap-4"><div><p className="font-sans text-xs font-extrabold uppercase tracking-[.14em] text-[#8a6c45]">Demo request</p><h2 className="mt-2 text-3xl text-[#202547]">Tell us a little about your team.</h2></div><span className="rounded-full bg-[#f3f1e9] px-2.5 py-1 text-[0.62rem] font-extrabold uppercase tracking-[.1em] text-[#6b5b82]">Prototype form</span></div><div className="mt-7 grid gap-5 sm:grid-cols-2"><label className="grid gap-2 text-sm font-bold text-[#3d4363]">First name<input className="ss-input" name="firstName" required placeholder="First name" /></label><label className="grid gap-2 text-sm font-bold text-[#3d4363]">Last name<input className="ss-input" name="lastName" required placeholder="Last name" /></label><label className="grid gap-2 text-sm font-bold text-[#3d4363] sm:col-span-2">Work email<input type="email" className="ss-input" name="email" required placeholder="name@company.com" /></label><label className="grid gap-2 text-sm font-bold text-[#3d4363] sm:col-span-2">Organization<input className="ss-input" name="organization" required placeholder="Brokerage, team, or organization name" /></label><label className="grid gap-2 text-sm font-bold text-[#3d4363] sm:col-span-2">What would you like to improve?<select className="ss-input" name="focus" defaultValue=""><option value="" disabled>Select a focus area</option><option value="contacts">Contact and relationship management</option><option value="deals">Deal pipelines and visibility</option><option value="coordination">Team coordination and handoffs</option><option value="portal">Client collaboration / portal</option><option value="automation">Automation and workflow</option><option value="other">Something else</option></select></label><label className="grid gap-2 text-sm font-bold text-[#3d4363] sm:col-span-2">A short note <span className="font-normal text-[#777c90]">(optional)</span><textarea className="ss-input min-h-28 resize-y" name="message" placeholder="What should we know before we speak?" /></label></div><button type="submit" className="ss-button-primary mt-7 w-full sm:w-auto">Request Demo <ArrowRight size={16} /></button><p className="mt-4 text-xs leading-5 text-[#777c90]">By sending this prototype form, you acknowledge that production routing has not yet been connected. The final form should link to approved privacy and communication terms.</p></form>}</div></div></section>
+      <Seo title="Book a demo" description="Book a Simply Saturn demo and talk through the operating model for your real estate team." />
+      <section className="ssm-contact-hero">
+        <div className="ssm-container ssm-contact-grid">
+          <div>
+            <div className="ssm-status"><span />Book a demo</div>
+            <h1>Start with the way your operation <em>actually works.</em></h1>
+            <p>Tell us where your current handoffs, relationship records, workflow controls, or client experiences need more alignment. We will start with the right next step.</p>
+            <div className="ssm-contact-points">
+              <div className="ssm-contact-point"><ShieldCheck size={18} /><div><b>A considered conversation</b><span>We will start from your team structure and service model — not a generic sales script.</span></div></div>
+              <div className="ssm-contact-point"><Clock3 size={18} /><div><b>Ready for your process</b><span>Bring the workflow questions and service concerns that matter to your organization.</span></div></div>
+            </div>
+          </div>
+          <div className="ssm-form-panel">
+            {submitted ? (
+              <div className="ssm-success"><CheckCircle2 size={35} /><p>Request received</p><h2>Thank you. We will be in touch shortly.</h2><span>This prototype form has recorded your interest locally; production routing will be connected to the approved intake process.</span></div>
+            ) : (
+              <form onSubmit={(event) => { event.preventDefault(); setSubmitted(true); }}>
+                <div className="ssm-form-heading"><div><p>DEMO REQUEST</p><h2>Tell us a little about your team.</h2></div><span>PROTOTYPE FORM</span></div>
+                <div className="ssm-form-two"><label>First name<input className="ssm-form-input" required placeholder="First name" /></label><label>Last name<input className="ssm-form-input" required placeholder="Last name" /></label></div>
+                <label>Work email<input className="ssm-form-input" required type="email" placeholder="name@company.com" /></label>
+                <label>Organization<input className="ssm-form-input" required placeholder="Brokerage, team, or organization name" /></label>
+                <label>What would you like to improve?<select className="ssm-form-input" required defaultValue=""><option value="" disabled>Select a focus area</option><option>Relationship and contact clarity</option><option>Deal pipeline visibility</option><option>Team coordination</option><option>Client service workflow</option></select></label>
+                <label>A short note <span>(optional)</span><textarea className="ssm-form-input" rows={4} placeholder="What should we know before we speak?" /></label>
+                <button type="submit" className="ssm-button ssm-button-dark">Book a Demo <ArrowRight size={16} /></button>
+                <small>By sending this prototype form, you acknowledge that production routing has not yet been connected.</small>
+              </form>
+            )}
+          </div>
+        </div>
+      </section>
     </MarketingLayout>
   );
 }

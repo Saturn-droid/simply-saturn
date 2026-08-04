@@ -1,21 +1,36 @@
-import { Seo } from "@/components/Seo";
-import { MarketingLayout } from "@/components/marketing/MarketingLayout";
-import { ArrowRight, Check, HelpCircle } from "lucide-react";
+import { ArrowRight, CheckCircle2 } from "lucide-react";
 import { Link } from "wouter";
+import { MarketingLayout } from "@/components/marketing/MarketingLayout";
+import { PageHero, SectionIntro } from "@/components/marketing/MarketingPrimitives";
+import { Seo } from "@/components/Seo";
 
-const tiers = [
-  { name: "Foundation", audience: "For focused operations getting their workspace in order.", detail: "A starting structure for organizations defining their core contact, deal, and task rhythm.", items: ["Core relationship workspace", "Pipeline and task foundations", "Role-aware team structure"], accent: false },
-  { name: "Momentum", audience: "For teams that need coordination across roles and services.", detail: "A broader operational layer for shared queues, workflow controls, and client-facing collaboration.", items: ["Everything in Foundation", "Assignment groups and workflow controls", "Client collaboration foundations"], accent: true },
-  { name: "Orbit", audience: "For organizations designing a more tailored operating model.", detail: "A consultative path for brokerage-wide configuration, systems planning, and future platform extensions.", items: ["Everything in Momentum", "Organization-specific workflow design", "Integration and rollout planning"], accent: false },
+const plans: Array<{ title: string; copy: string; benefits: string[] }> = [
+  { title: "Team foundation", copy: "For teams organizing the records, deal flow, and service practices that need a single home.", benefits: ["Contact & relationship workspace", "Pipeline foundations", "Role-aware work views"] },
+  { title: "Growing operation", copy: "For teams coordinating more people, handoffs, accountability, and client-facing moments.", benefits: ["Everything in Team foundation", "Shared queues & coordination", "Operational reporting"] },
+  { title: "Brokerage platform", copy: "For organizations designing a more tailored, organization-wide operating model.", benefits: ["Everything in Growing operation", "Organization-specific configuration", "Planned rollout & integrations"] },
 ];
 
 export default function Pricing() {
   return (
     <MarketingLayout>
-      <Seo title="Pricing framework" description="Review Simply Saturn’s pricing framework for brokerage, team, and real estate operations platform needs." />
-      <section className="relative overflow-hidden bg-[#f5f3ec] py-20 text-center sm:py-28"><div aria-hidden="true" className="ss-orbital-ring left-1/2 top-1 h-[23rem] w-[49rem] -translate-x-1/2 rotate-[-14deg] border-[#c99d62]/35" /><div className="container relative"><div className="ss-eyebrow"><span className="ss-kicker-dot" />Pricing framework</div><h1 className="mx-auto mt-6 max-w-4xl text-5xl leading-[.98] text-[#171b39] sm:text-6xl">A plan structure designed to become as clear as the platform.</h1><p className="mx-auto mt-7 max-w-2xl text-lg leading-8 text-[#5b6078]">Commercial packaging is being finalized with the right mix of organization size, rollout support, and operational complexity in mind.</p><p className="mx-auto mt-5 max-w-xl rounded-lg border border-[#171b39]/9 bg-white/70 px-4 py-3 text-xs leading-5 text-[#666b82]"><strong className="font-extrabold text-[#3d4363]">[Ready for finalized pricing]</strong> This page is intentionally structured for approved pricing, billing terms, and plan entitlements. No pricing has been invented.</p></div></section>
-      <section className="bg-white py-16 sm:py-20"><div className="container grid gap-4 lg:grid-cols-3">{tiers.map((tier) => <article key={tier.name} className={`relative flex min-h-[31rem] flex-col overflow-hidden rounded-[1.5rem] border p-7 ${tier.accent ? "border-[#22294e] bg-[#22294e] text-white shadow-[0_30px_80px_rgba(32,38,75,.2)]" : "border-[#171b39]/10 bg-[#fcfbf7] text-[#202546]"}`}><div aria-hidden="true" className={`absolute -right-14 -top-20 h-52 w-72 rotate-[-20deg] rounded-[100%] border ${tier.accent ? "border-[#d1a467]/40" : "border-[#c99d62]/28"}`} /><div className="relative"><p className={`font-sans text-[0.68rem] font-extrabold uppercase tracking-[0.15em] ${tier.accent ? "text-[#dfcda9]" : "text-[#927653]"}`}>{tier.name}</p><h2 className="mt-7 text-3xl">[Pricing to be confirmed]</h2><p className={`mt-4 text-sm leading-6 ${tier.accent ? "text-[#c6c5d2]" : "text-[#676c83]"}`}>{tier.audience}</p></div><div className={`relative mt-7 rounded-xl border p-4 ${tier.accent ? "border-white/11 bg-white/6" : "border-[#171b39]/8 bg-white/70"}`}><p className={`text-sm leading-6 ${tier.accent ? "text-[#dedde7]" : "text-[#555b73]"}`}>{tier.detail}</p></div><ul className="relative mt-7 space-y-3">{tier.items.map((item) => <li key={item} className={`flex gap-2 text-sm font-semibold ${tier.accent ? "text-[#f1eff2]" : "text-[#404662]"}`}><Check size={16} className={tier.accent ? "text-[#d1a467]" : "text-[#977b55]"} />{item}</li>)}</ul><Link href="/contact" className={`relative mt-auto pt-10 text-sm font-extrabold ${tier.accent ? "text-[#f4e7cb]" : "text-[#303655]"}`}>Discuss this path <ArrowRight className="ml-1 inline" size={16} /></Link></article>)}</div></section>
-      <section className="border-t border-[#171b39]/8 bg-[#fbfaf5] py-16"><div className="container grid gap-8 lg:grid-cols-[.8fr_1.2fr]"><div><p className="font-sans text-xs font-extrabold uppercase tracking-[.14em] text-[#8a6c45]">Plan with intent</p><h2 className="mt-4 text-4xl text-[#171b39]">The conversation is part of the configuration.</h2></div><div className="grid gap-3 sm:grid-cols-2"><div className="rounded-xl border border-[#171b39]/9 bg-white p-5"><HelpCircle size={20} className="text-[#6d5b8f]" /><h3 className="mt-6 font-sans text-sm font-extrabold text-[#282e50]">Still defining your needs?</h3><p className="mt-2 text-sm leading-6 text-[#6a6f85]">We can help map roles, workflows, and operating concerns before choosing a rollout approach.</p></div><div className="rounded-xl border border-[#171b39]/9 bg-white p-5"><ArrowRight size={20} className="text-[#6d5b8f]" /><h3 className="mt-6 font-sans text-sm font-extrabold text-[#282e50]">Ready to explore?</h3><p className="mt-2 text-sm leading-6 text-[#6a6f85]">Request a demonstration and start from the reality of your business, not a one-size-fits-all checklist.</p></div></div></div></section>
+      <Seo title="Pricing" description="Discuss a Simply Saturn plan structure designed around your real estate team's operating model." />
+      <PageHero eyebrow="Pricing framework" title={<>A plan structure as clear as the <em>platform behind it.</em></>} description="Commercial packaging is finalized with the right mix of organization size, rollout support, and operational complexity in mind." />
+      <section className="ssm-light-section">
+        <div className="ssm-container">
+          <SectionIntro eyebrow="Pricing to be confirmed" title={<>A clearer way to plan your <em>next operating chapter.</em></>} copy="We do not invent pricing. Instead, we shape a practical plan around the service model and rollout your team needs." />
+          <div className="ssm-pricing-grid">
+            {plans.map((plan, index) => (
+              <article className={index === 1 ? "ssm-price-card featured" : "ssm-price-card"} key={plan.title}>
+                <p>{index === 1 ? "MOST COMMON NEXT STEP" : "PLATFORM PATH"}</p>
+                <h3>{plan.title}</h3>
+                <span>{plan.copy}</span>
+                <ul>{plan.benefits.map((benefit) => <li key={benefit}><CheckCircle2 size={16} />{benefit}</li>)}</ul>
+                <Link href="/contact">Discuss this path <ArrowRight size={15} /></Link>
+              </article>
+            ))}
+          </div>
+        </div>
+      </section>
     </MarketingLayout>
   );
 }

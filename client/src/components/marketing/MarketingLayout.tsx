@@ -4,7 +4,7 @@ import type { ReactNode } from "react";
 
 export function MarketingLayout({ children }: { children: ReactNode }) {
   return (
-    <div className="ss-shell">
+    <div className="ssm-shell">
       <SiteHeader />
       <main>{children}</main>
       <SiteFooter />

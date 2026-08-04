@@ -7,9 +7,9 @@ const clientSource = (relativePath: string) =>
   readFile(path.resolve(import.meta.dirname, "../client/src", relativePath), "utf8");
 
 describe("Simply Saturn product foundation", () => {
-  it("preserves the exact required landing CTAs and destinations", () => {
-    expect(landingCtas.map((cta) => cta.label)).toEqual(["Get Started", "Request Demo", "Sign In"]);
-    expect(landingCtas.map((cta) => cta.href)).toEqual(["/signup", "/contact", "/login"]);
+  it("preserves the restored dark-CRM landing CTAs and destinations", () => {
+    expect(landingCtas.map((cta) => cta.label)).toEqual(["Book a Demo", "Sign In to CRM"]);
+    expect(landingCtas.map((cta) => cta.href)).toEqual(["/contact", "/login"]);
   });
 
   it("preserves the required sidebar navigation order", () => {
@@ -27,8 +27,9 @@ describe("Simply Saturn product foundation", () => {
     ]);
   });
 
-  it("keeps the approved public navigation routes available", () => {
-    expect(publicNavigation.map((item) => item.href)).toEqual(["/product", "/features", "/pricing", "/about"]);
+  it("keeps the restored dark-CRM public navigation routes available", () => {
+    expect(publicNavigation.map((item) => item.label)).toEqual(["Solutions", "Features", "Pricing", "About", "Book a Demo"]);
+    expect(publicNavigation.map((item) => item.href)).toEqual(["/product", "/features", "/pricing", "/about", "/contact"]);
   });
 
   it("wires the public, access-flow, and workspace destinations into the application router", async () => {
@@ -63,6 +64,23 @@ describe("Simply Saturn product foundation", () => {
     });
   });
 
+  it("preserves the reference-aligned dark CRM hero and shared navigation hooks", async () => {
+    const [home, header, styles] = await Promise.all([
+      clientSource("pages/Home.tsx"),
+      clientSource("components/marketing/SiteHeader.tsx"),
+      clientSource("index.css"),
+    ]);
+
+    expect(home).toContain('className="ssm-hero"');
+    expect(home).toContain('className="ssm-wave"');
+    expect(home).toContain("Now with AI-powered contact intelligence");
+    expect(header).toContain('className="ssm-header"');
+    expect(header).toContain('className="ssm-signin-pill"');
+    expect(styles).toContain(".ssm-hero, .ssm-page-hero");
+    expect(styles).toContain("#10d8c7");
+    expect(styles).toContain(".ssm-wave");
+  });
+
   it("keeps the demo, sign-in, onboarding, invite, and recovery foundations accessible and clearly staged", async () => {
     const [contact, login, signUp, invite, recovery] = await Promise.all([
       clientSource("pages/Contact.tsx"),
@@ -72,10 +90,10 @@ describe("Simply Saturn product foundation", () => {
       clientSource("pages/ForgotPassword.tsx"),
     ]);
 
-    expect(contact).toContain("<form onSubmit={submitRequest}");
+    expect(contact).toContain("<form onSubmit={(event) =>");
     expect(contact).toContain("type=\"email\"");
     expect(contact).toContain("required");
-    expect(contact).toContain("Prototype form");
+    expect(contact).toContain("PROTOTYPE FORM");
     expect(login).toContain("Forgot password?");
     expect(login).toContain("Create an organization");
     expect(login).toContain("Accept an invite");
@@ -109,6 +127,6 @@ describe("Simply Saturn product foundation", () => {
     const styles = await readFile(path.resolve(import.meta.dirname, "../client/src/index.css"), "utf8");
 
     expect(styles).toContain("outline-ring/50");
-    expect(styles).toContain("box-shadow: 0 0 0 3px rgba(80, 65, 111, 0.12)");
+    expect(styles).toContain("box-shadow: 0 0 0 3px rgba(75, 116, 169, 0.14)");
   });
 });

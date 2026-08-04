@@ -1,89 +1,62 @@
-import { BrandMark } from "@/components/BrandMark";
-import { cn } from "@/lib/utils";
-import { Menu, X } from "lucide-react";
+import { ChevronDown, Menu, X } from "lucide-react";
 import { useState } from "react";
 import { Link, useLocation } from "wouter";
 
 const navigation = [
-  { label: "Product", href: "/product" },
+  { label: "Solutions", href: "/product", hasChevron: true },
   { label: "Features", href: "/features" },
   { label: "Pricing", href: "/pricing" },
-  { label: "Vision", href: "/about" },
+  { label: "About", href: "/about" },
+  { label: "Book a Demo", href: "/contact" },
 ];
 
 export function SiteHeader() {
   const [isOpen, setIsOpen] = useState(false);
   const [location] = useLocation();
-
   const closeMenu = () => setIsOpen(false);
 
   return (
-    <header className="sticky top-0 z-50 border-b border-[#171b39]/8 bg-[#fbfaf4]/82 backdrop-blur-xl">
-      <div className="container flex h-[4.75rem] items-center justify-between gap-4">
-        <Link href="/" onClick={closeMenu} aria-label="Simply Saturn home">
-          <BrandMark />
+    <header className="ssm-header">
+      <div className="ssm-container ssm-header-inner">
+        <Link href="/" onClick={closeMenu} className="ssm-brand" aria-label="Simply Saturn home">
+          <span className="ssm-brand-mark" aria-hidden="true">S</span>
+          <span>Simply Saturn</span>
         </Link>
 
-        <nav aria-label="Primary" className="hidden items-center gap-1 lg:flex">
-          {navigation.map((item) => {
-            const active = location === item.href;
-            return (
-              <Link
-                key={item.href}
-                href={item.href}
-                className={cn(
-                  "ss-nav-link rounded-lg px-3 py-2 text-[0.8rem] font-semibold",
-                  active ? "bg-[#171b39]/6 text-[#171b39]" : "text-[#555975] hover:text-[#171b39]"
-                )}
-              >
-                {item.label}
-              </Link>
-            );
-          })}
+        <nav className="ssm-desktop-nav" aria-label="Primary navigation">
+          {navigation.map((item) => (
+            <Link key={item.href} href={item.href} className={location === item.href ? "is-active" : undefined}>
+              {item.label}{item.hasChevron ? <ChevronDown size={13} strokeWidth={1.8} /> : null}
+            </Link>
+          ))}
         </nav>
 
-        <div className="hidden items-center gap-2 lg:flex">
-          <Link href="/login" className="ss-nav-pill rounded-lg px-3 py-2 text-[0.8rem] font-bold text-[#323757] hover:bg-[#171b39]/5">
-            Sign In
-          </Link>
-          <Link href="/signup" className="ss-button-primary text-[0.76rem]">
-            Get Started
-          </Link>
+        <div className="ssm-desktop-actions">
+          <Link href="/login" className="ssm-signin-pill">Sign In</Link>
         </div>
 
         <button
           type="button"
           aria-controls="mobile-primary-nav"
           aria-expanded={isOpen}
-          onClick={() => setIsOpen((current) => !current)}
-          className="grid h-10 w-10 place-items-center rounded-xl border border-[#171b39]/10 bg-white text-[#171b39] lg:hidden"
+          onClick={() => setIsOpen((open) => !open)}
+          className="ssm-menu-button"
         >
           <span className="sr-only">{isOpen ? "Close navigation" : "Open navigation"}</span>
-          {isOpen ? <X size={18} /> : <Menu size={19} />}
+          {isOpen ? <X size={20} /> : <Menu size={20} />}
         </button>
       </div>
 
       {isOpen ? (
-        <div id="mobile-primary-nav" className="border-t border-[#171b39]/8 bg-[#fbfaf4] px-5 pb-5 pt-3 lg:hidden">
-          <nav aria-label="Mobile primary" className="mx-auto flex max-w-xl flex-col gap-1">
+        <div id="mobile-primary-nav" className="ssm-mobile-nav">
+          <div className="ssm-container">
             {navigation.map((item) => (
-              <Link
-                key={item.href}
-                href={item.href}
-                onClick={closeMenu}
-                className="rounded-xl px-3 py-3 text-sm font-bold text-[#323757] hover:bg-[#171b39]/5"
-              >
-                {item.label}
+              <Link key={item.href} href={item.href} onClick={closeMenu}>
+                {item.label}{item.hasChevron ? <ChevronDown size={15} /> : null}
               </Link>
             ))}
-            <div className="my-2 h-px bg-[#171b39]/8" />
-            <Link href="/login" onClick={closeMenu} className="rounded-xl px-3 py-3 text-sm font-bold text-[#323757] hover:bg-[#171b39]/5">
-              Sign In
-            </Link>
-            <Link href="/signup" onClick={closeMenu} className="ss-button-primary mt-1 w-full">
-              Get Started
-            </Link>
-          </nav>
+            <Link href="/login" onClick={closeMenu} className="ssm-mobile-signin">Sign In</Link>
+          </div>
         </div>
       ) : null}
     </header>

@@ -1,29 +1,39 @@
-import { Seo } from "@/components/Seo";
-import { MarketingLayout } from "@/components/marketing/MarketingLayout";
-import { ArrowRight, Bot, BriefcaseBusiness, Cable, Check, ContactRound, FileCheck2, FolderKanban, PanelTop, UsersRound } from "lucide-react";
+import { ArrowRight, Bot, Building2, ClipboardList, FileText, Handshake, Layers3, Users } from "lucide-react";
 import { Link } from "wouter";
+import { MarketingLayout } from "@/components/marketing/MarketingLayout";
+import { PageHero, SectionIntro } from "@/components/marketing/MarketingPrimitives";
+import { Seo } from "@/components/Seo";
 
-const featureDetails = [
-  { number: "01", title: "Contact Management", icon: ContactRound, lead: "Keep the complete relationship in view.", description: "Bring contact details, communication context, household and ownership relationships, preferences, and related property activity into a dependable shared record.", points: ["Relationship-aware records", "Property and ownership context", "Shared team visibility"] },
-  { number: "02", title: "Deal Pipelines", icon: FolderKanban, lead: "Make progress visible and next steps specific.", description: "Use pipeline stages, accountable owners, timed tasks, structured checklists, and clear handoffs to guide different deal motions without hiding operational complexity.", points: ["Configurable pipeline stages", "Accountable next actions", "Stage-level service controls"] },
-  { number: "03", title: "Team Coordination", icon: UsersRound, lead: "Organize work around who is equipped to move it forward.", description: "Assignment groups, team responsibilities, and shared queues make it easier to coordinate service across agents, inside sales, transaction teams, and support staff.", points: ["Assignment groups", "Role-aware surfaces", "Purposeful handoffs"] },
-  { number: "04", title: "Client Portal", icon: PanelTop, lead: "Create a calmer way to collaborate with clients.", description: "Give clients a clear place to review relevant property information, updates, decisions, and shared materials as the client-facing experience develops.", points: ["Unified property collaboration", "Connected service context", "External portal-aware architecture"] },
-  { number: "05", title: "Automation", icon: Bot, lead: "Automate the routine. Verify the consequential.", description: "Connect triggers, tasks, notifications, and routing rules to reduce unnecessary administration while preserving review points where a person should make the call.", points: ["Event-driven actions", "Human verification", "Visible automation history"] },
-  { number: "06", title: "Document & Compliance Workflow", icon: FileCheck2, lead: "Keep the important proof with the work.", description: "Link files, compliance checklists, approvals, and service requirements directly to deals and workflows so your operating record remains clear when it matters.", points: ["Deal-connected documents", "Checklist and approval logic", "Ready for policy-specific workflows"] },
-  { number: "07", title: "Integration-Friendly Architecture", icon: Cable, lead: "A platform that can fit an evolving ecosystem.", description: "Build toward a modular, organization-specific operating environment that can connect to specialist services and external portals as the business requires.", points: ["Modular platform structure", "Shared data foundation", "Ready for extensibility"] },
-];
+const features = [
+  [Users, "Contact intelligence", "Keep contact details, relationship roles, notes, and engagement history in meaningful context."],
+  [Building2, "Property context", "Connect ownership, preferences, homes, and opportunities to the people your team serves."],
+  [ClipboardList, "Deal pipelines", "Build clear motion around your own stages, ownership rules, and service checkpoints."],
+  [Handshake, "Team coordination", "Make assignments, handoffs, and responsibility visible across every client experience."],
+  [FileText, "Documents & compliance", "Keep requests, completed work, and key records close to the deal they support."],
+  [Bot, "Helpful automation", "Reduce routine follow-up while keeping a human accountable for consequential decisions."],
+  [Layers3, "Extensible foundation", "Grow the operating model around the systems and services your organization needs."],
+] as const;
 
 export default function Features() {
   return (
     <MarketingLayout>
-      <Seo title="Features for connected real estate operations" description="Explore Simply Saturn’s connected capabilities for contact management, deal pipelines, team coordination, client portals, automation, compliance, and integrations." />
-      <section className="relative overflow-hidden bg-[#f5f3ec] py-20 sm:py-28"><div aria-hidden="true" className="ss-orbital-ring -right-32 top-4 h-[26rem] w-[51rem] rotate-[-18deg] border-[#c99d62]/35" /><div aria-hidden="true" className="ss-orbital-ring -right-24 top-16 h-[18rem] w-[36rem] rotate-[-18deg] border-[#50416f]/14" /><div className="container relative max-w-5xl"><div className="ss-eyebrow"><span className="ss-kicker-dot" />Platform capabilities</div><h1 className="mt-6 max-w-4xl text-5xl leading-[.98] text-[#171b39] sm:text-6xl lg:text-7xl">Seven operating layers. One more coherent workspace.</h1><p className="mt-7 max-w-2xl text-lg leading-8 text-[#5b6078]">Each capability is designed to strengthen the rest—so your teams can make decisions with the right context instead of more tools.</p></div></section>
-
-      <section className="bg-white"><div className="container divide-y divide-[#171b39]/10">{featureDetails.map((feature, index) => { const Icon = feature.icon; return <article key={feature.title} className="grid gap-7 py-12 sm:py-16 lg:grid-cols-[.16fr_.39fr_.6fr] lg:gap-10"><div className="font-sans text-xs font-extrabold tracking-[0.16em] text-[#9a805a]">{feature.number}</div><div><span className="grid h-12 w-12 place-items-center rounded-xl bg-[#eee9de] text-[#4d416d]"><Icon size={22} /></span><h2 className="mt-5 text-3xl leading-[1.05] text-[#1b2044] sm:text-4xl">{feature.title}</h2></div><div><h3 className="font-sans text-lg font-extrabold leading-7 text-[#3a4166]">{feature.lead}</h3><p className="mt-3 max-w-xl text-sm leading-6 text-[#686d83]">{feature.description}</p><ul className="mt-6 grid gap-2 sm:grid-cols-3">{feature.points.map((point) => <li key={point} className="flex gap-2 text-xs font-bold leading-5 text-[#545a75]"><Check size={14} className="mt-0.5 shrink-0 text-[#987c53]" />{point}</li>)}</ul>{index === 3 ? <p className="mt-6 rounded-lg bg-[#f6f3eb] px-3.5 py-3 text-xs leading-5 text-[#686d83]"><strong className="font-extrabold text-[#3d4363]">[Product roadmap note]</strong> External MLS/portal synchronization is represented as an architectural direction; production integrations will be connected as partnerships and availability are confirmed.</p> : null}</div></article>; })}</div></section>
-
-      <section className="relative overflow-hidden bg-[#22294e] py-20 text-white"><div aria-hidden="true" className="absolute -bottom-32 -left-24 h-[27rem] w-[48rem] rotate-[30deg] rounded-[100%] border border-white/12" /><div className="container relative grid gap-10 lg:grid-cols-[.85fr_1.15fr] lg:items-center"><div><p className="font-sans text-xs font-extrabold uppercase tracking-[0.15em] text-[#d1a467]">Fit the platform to the work</p><h2 className="mt-4 text-4xl leading-[1.04] sm:text-5xl">A command center that changes with your organization.</h2></div><div className="grid gap-3 sm:grid-cols-2"><div className="rounded-[1.15rem] border border-white/12 bg-white/6 p-5"><BriefcaseBusiness size={20} className="text-[#d1a467]" /><h3 className="mt-7 text-xl">For brokerages</h3><p className="mt-2 text-sm leading-6 text-[#c7c5d3]">Establish visibility, service controls, teams, and operational rhythm across a broader organization.</p></div><div className="rounded-[1.15rem] border border-white/12 bg-white/6 p-5"><UsersRound size={20} className="text-[#d1a467]" /><h3 className="mt-7 text-xl">For teams</h3><p className="mt-2 text-sm leading-6 text-[#c7c5d3]">Coordinate shared activity without asking individual contributors to reconstruct the context.</p></div></div></div></section>
-
-      <section className="bg-[#fbfaf5] py-16"><div className="container"><div className="flex flex-col justify-between gap-7 rounded-[1.5rem] border border-[#171b39]/9 bg-white p-8 sm:p-11 lg:flex-row lg:items-end"><div><p className="font-sans text-xs font-extrabold uppercase tracking-[0.14em] text-[#8a6c45]">See it in context</p><h2 className="mt-3 text-3xl text-[#171b39] sm:text-4xl">Map your current workflows to a more connected future.</h2></div><Link href="/contact" className="ss-button-primary">Request Demo <ArrowRight size={16} /></Link></div></div></section>
+      <Seo title="CRM features for real estate teams" description="Explore the contact intelligence, pipeline, coordination, documentation, and automation capabilities in Simply Saturn." />
+      <PageHero eyebrow="Platform capabilities" title={<>Everything your team needs to <em>move with clarity.</em></>} description="A connected set of capabilities for the relationships, pipeline, and service standards that make a real estate organization work." />
+      <section className="ssm-light-section">
+        <div className="ssm-container">
+          <SectionIntro eyebrow="Designed for real estate teams" title={<>Practical tools. One <em>shared record.</em></>} copy="Every feature begins with the people and operating context that sit behind the transaction." />
+          <div className="ssm-feature-list">
+            {features.map(([Icon, title, copy], index) => (
+              <article key={title}>
+                <span>{String(index + 1).padStart(2, "0")}</span>
+                <div className="ssm-icon"><Icon size={19} /></div>
+                <div><h3>{title}</h3><p>{copy}</p></div>
+              </article>
+            ))}
+          </div>
+        </div>
+      </section>
+      <section className="ssm-container"><div className="ssm-cta-band"><div><p>SEE THE PLATFORM IN CONTEXT</p><h2>Map your current workflow to a more connected future.</h2></div><Link href="/contact" className="ssm-button ssm-button-light">Book a Demo <ArrowRight size={16} /></Link></div></section>
     </MarketingLayout>
   );
 }

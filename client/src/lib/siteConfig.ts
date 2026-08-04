@@ -13,16 +13,16 @@ import {
 } from "lucide-react";
 
 export const publicNavigation = [
-  { label: "Product", href: "/product" },
+  { label: "Solutions", href: "/product" },
   { label: "Features", href: "/features" },
   { label: "Pricing", href: "/pricing" },
-  { label: "Vision", href: "/about" },
+  { label: "About", href: "/about" },
+  { label: "Book a Demo", href: "/contact" },
 ] as const;
 
 export const landingCtas = [
-  { label: "Get Started", href: "/signup", style: "primary" },
-  { label: "Request Demo", href: "/contact", style: "secondary" },
-  { label: "Sign In", href: "/login", style: "text" },
+  { label: "Book a Demo", href: "/contact", style: "primary" },
+  { label: "Sign In to CRM", href: "/login", style: "secondary" },
 ] as const;
 
 export type DashboardNavigationItem = {
