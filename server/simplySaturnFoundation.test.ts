@@ -46,7 +46,21 @@ describe("Simply Saturn product foundation", () => {
       "/invite",
       "/forgot-password",
       "/app",
+      "/app/inbox",
     ].forEach((route) => expect(app).toContain(`path="${route}"`));
+
+    expect(app.indexOf('path="/app/inbox"')).toBeLessThan(app.indexOf('path="/app"'));
+  });
+
+  it("keeps every sales page in the shared marketing shell rather than the authenticated workspace shell", async () => {
+    const pages = ["Home", "Product", "Features", "Pricing", "About", "Contact"];
+    const sources = await Promise.all(pages.map((page) => clientSource(`pages/${page}.tsx`)));
+
+    sources.forEach((source) => {
+      expect(source).toContain('import { MarketingLayout } from "@/components/marketing/MarketingLayout"');
+      expect(source).toContain("<MarketingLayout>");
+      expect(source).not.toContain("<DashboardLayout");
+    });
   });
 
   it("keeps the demo, sign-in, onboarding, invite, and recovery foundations accessible and clearly staged", async () => {

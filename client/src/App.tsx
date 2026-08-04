@@ -31,8 +31,8 @@ function Router() {
       <Route path="/signup" component={SignUp} />
       <Route path="/invite" component={Invite} />
       <Route path="/forgot-password" component={ForgotPassword} />
-      <Route path="/app" component={Dashboard} />
       <Route path="/app/inbox" component={Inbox} />
+      <Route path="/app" component={Dashboard} />
       <Route path="/privacy" component={LegalPlaceholder} />
       <Route path="/terms" component={LegalPlaceholder} />
       <Route path="/security" component={LegalPlaceholder} />

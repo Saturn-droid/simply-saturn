@@ -34,3 +34,4 @@
 - [x] Support a Twilio trial configuration using an approved direct sender number when no Messaging Service SID is available.
 - [ ] Obtain explicit confirmation of the recipient and exact message body before dispatching the first live SMS from Simply Saturn.
 - [ ] Replace the trial Auth Token fallback with a restricted Twilio API key after the account supports that credential model.
+- [x] Diagnose and restore the public sales landing pages after the reported regression, preserving the Inbox/Text module and the home page as the marketing design reference.
