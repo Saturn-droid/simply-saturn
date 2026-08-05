@@ -46,6 +46,16 @@ const contactPayloadSchema = z.object({
   dealCount: z.number().int().min(0).max(100000),
 });
 
+const dealStageSchema = z.enum(["lead", "qualification", "active", "offer", "under_contract", "closed", "lost"]);
+const dealPayloadSchema = z.object({
+  contactId: z.number().int().positive(),
+  title: z.string().trim().min(1).max(240),
+  propertyAddress: z.string().trim().max(320).optional(),
+  stage: dealStageSchema.default("lead"),
+  estimatedValueCents: z.number().int().min(0).max(2_000_000_000).optional(),
+  targetCloseAt: z.coerce.date().optional(),
+});
+
 async function validateCalendarEventPayload(ownerUserId: number, input: z.infer<typeof calendarEventPayloadSchema>) {
   if (input.endsAt.getTime() <= input.startsAt.getTime()) {
     throw new TRPCError({ code: "BAD_REQUEST", message: "End time must be later than the start time." });
@@ -227,6 +237,24 @@ export const appRouter = router({
         const contact = await db.recordCrmContactActivity({ ownerUserId: ctx.user.id, contactId: input.contactId, channel: input.channel });
         if (!contact) throw new TRPCError({ code: "NOT_FOUND", message: "That contact is unavailable." });
         return contact;
+      }),
+  }),
+
+  deals: router({
+    list: protectedProcedure.query(({ ctx }) => db.listCrmDeals(ctx.user.id)),
+    create: protectedProcedure
+      .input(dealPayloadSchema)
+      .mutation(async ({ ctx, input }) => {
+        const deal = await db.createCrmDeal({ ownerUserId: ctx.user.id, ...input });
+        if (!deal) throw new TRPCError({ code: "NOT_FOUND", message: "Choose a contact that belongs to this workspace." });
+        return deal;
+      }),
+    updateStage: protectedProcedure
+      .input(z.object({ dealId: z.number().int().positive(), stage: dealStageSchema }))
+      .mutation(async ({ ctx, input }) => {
+        const deal = await db.updateCrmDealStage({ ownerUserId: ctx.user.id, ...input });
+        if (!deal) throw new TRPCError({ code: "NOT_FOUND", message: "That deal is unavailable." });
+        return deal;
       }),
   }),
 

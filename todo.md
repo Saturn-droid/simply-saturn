@@ -74,3 +74,5 @@
 - [ ] Add production invitation delivery and pending-invitation lifecycle visibility after the domain-specific noreply email service is configured.
 - [x] Add Inbox email-recipient autocomplete that suggests matching contacts and registered team members while allowing full external email addresses without requiring outbound email delivery.
 - [x] Add regression coverage for email-recipient suggestions, selection, and external-address entry in the Inbox composer.
+- [x] Build the next non-provider queue item: a Deals workspace with contact-linked real estate deals, a clear pipeline-stage board, and controlled stage updates.
+- [x] Add protected Deals data procedures and regression coverage for deal creation, contact association, and stage transitions.

@@ -6,6 +6,7 @@ import Contact from "@/pages/Contact";
 import ContactDetail from "@/pages/ContactDetail";
 import Contacts from "@/pages/Contacts";
 import Dashboard from "@/pages/Dashboard";
+import Deals from "@/pages/Deals";
 import Features from "@/pages/Features";
 import ForgotPassword from "@/pages/ForgotPassword";
 import Home from "@/pages/Home";
@@ -37,6 +38,7 @@ function Router() {
       <Route path="/forgot-password" component={ForgotPassword} />
       <Route path="/app/inbox" component={Inbox} />
       <Route path="/app/calendar" component={Calendar} />
+      <Route path="/app/deals" component={Deals} />
       <Route path="/app/contacts/:contactId" component={ContactDetail} />
       <Route path="/app/contacts" component={Contacts} />
       <Route path="/app/team" component={Team} />

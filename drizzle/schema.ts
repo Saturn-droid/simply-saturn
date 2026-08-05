@@ -218,5 +218,30 @@ export const contactActivities = mysqlTable(
   ],
 );
 
+/**
+ * Owner-scoped real estate opportunities. Every deal is tied to a saved CRM
+ * contact so relationship and pipeline context stay connected.
+ */
+export const crmDeals = mysqlTable(
+  "crmDeals",
+  {
+    id: int("id").autoincrement().primaryKey(),
+    ownerUserId: int("ownerUserId").notNull().references(() => users.id),
+    contactId: int("contactId").notNull().references(() => crmContacts.id),
+    title: varchar("title", { length: 240 }).notNull(),
+    propertyAddress: varchar("propertyAddress", { length: 320 }),
+    stage: mysqlEnum("stage", ["lead", "qualification", "active", "offer", "under_contract", "closed", "lost"]).default("lead").notNull(),
+    estimatedValueCents: int("estimatedValueCents").default(0).notNull(),
+    targetCloseAt: timestamp("targetCloseAt"),
+    createdAt: timestamp("createdAt").defaultNow().notNull(),
+    updatedAt: timestamp("updatedAt").defaultNow().onUpdateNow().notNull(),
+  },
+  (table) => [
+    index("crm_deals_owner_stage_idx").on(table.ownerUserId, table.stage, table.updatedAt),
+    index("crm_deals_owner_contact_idx").on(table.ownerUserId, table.contactId),
+  ],
+);
+
 export type CrmContact = typeof crmContacts.$inferSelect;
 export type ContactActivity = typeof contactActivities.$inferSelect;
+export type CrmDeal = typeof crmDeals.$inferSelect;

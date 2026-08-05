@@ -1,4 +1,4 @@
-import { and, asc, desc, eq, inArray } from "drizzle-orm";
+import { and, asc, count, desc, eq, inArray } from "drizzle-orm";
 import { drizzle } from "drizzle-orm/mysql2";
 import {
   CalendarContact,
@@ -11,6 +11,7 @@ import {
   calendarEvents,
   contactActivities,
   crmContacts,
+  crmDeals,
   workspaceTeamMembers,
   SmsConversation,
   SmsMessage,
@@ -111,6 +112,8 @@ export type ContactStatusValue = (typeof contactStatusValues)[number];
 export const contactTypeValues = ["buyer", "seller", "investor", "vendor", "agent", "tenant", "landlord", "other"] as const;
 export type ContactTypeValue = (typeof contactTypeValues)[number];
 export type ContactActivityChannel = "text" | "call" | "email";
+export const dealStageValues = ["lead", "qualification", "active", "offer", "under_contract", "closed", "lost"] as const;
+export type DealStageValue = (typeof dealStageValues)[number];
 
 function parseContactTypes(typesJson: string): ContactTypeValue[] {
   try {
@@ -248,6 +251,97 @@ export async function recordCrmContactActivity(input: {
     .set(summaryField)
     .where(and(eq(crmContacts.ownerUserId, input.ownerUserId), eq(crmContacts.id, input.contactId)));
   return getCrmContact({ ownerUserId: input.ownerUserId, contactId: input.contactId });
+}
+
+async function refreshCrmContactDealCount(ownerUserId: number, contactId: number): Promise<void> {
+  const db = await getDb();
+  if (!db) return;
+  const result = await db
+    .select({ total: count() })
+    .from(crmDeals)
+    .where(and(eq(crmDeals.ownerUserId, ownerUserId), eq(crmDeals.contactId, contactId)));
+  await db
+    .update(crmContacts)
+    .set({ dealCount: Number(result[0]?.total ?? 0) })
+    .where(and(eq(crmContacts.ownerUserId, ownerUserId), eq(crmContacts.id, contactId)));
+}
+
+export type CrmDealWithContact = {
+  id: number;
+  ownerUserId: number;
+  contactId: number;
+  contactName: string;
+  contactEmail: string | null;
+  title: string;
+  propertyAddress: string | null;
+  stage: DealStageValue;
+  estimatedValueCents: number;
+  targetCloseAt: Date | null;
+  createdAt: Date;
+  updatedAt: Date;
+};
+
+export async function listCrmDeals(ownerUserId: number): Promise<CrmDealWithContact[]> {
+  const db = await getDb();
+  if (!db) return [];
+  return db
+    .select({
+      id: crmDeals.id,
+      ownerUserId: crmDeals.ownerUserId,
+      contactId: crmDeals.contactId,
+      contactName: crmContacts.displayName,
+      contactEmail: crmContacts.email,
+      title: crmDeals.title,
+      propertyAddress: crmDeals.propertyAddress,
+      stage: crmDeals.stage,
+      estimatedValueCents: crmDeals.estimatedValueCents,
+      targetCloseAt: crmDeals.targetCloseAt,
+      createdAt: crmDeals.createdAt,
+      updatedAt: crmDeals.updatedAt,
+    })
+    .from(crmDeals)
+    .innerJoin(crmContacts, eq(crmDeals.contactId, crmContacts.id))
+    .where(and(eq(crmDeals.ownerUserId, ownerUserId), eq(crmContacts.ownerUserId, ownerUserId)))
+    .orderBy(desc(crmDeals.updatedAt));
+}
+
+export async function createCrmDeal(input: {
+  ownerUserId: number;
+  contactId: number;
+  title: string;
+  propertyAddress?: string;
+  stage: DealStageValue;
+  estimatedValueCents?: number;
+  targetCloseAt?: Date;
+}) {
+  const db = await getDb();
+  if (!db) throw new Error("Database is not available for deals.");
+  const contact = await getCrmContact({ ownerUserId: input.ownerUserId, contactId: input.contactId });
+  if (!contact) return undefined;
+  const [created] = await db.insert(crmDeals).values({
+    ownerUserId: input.ownerUserId,
+    contactId: input.contactId,
+    title: input.title,
+    propertyAddress: input.propertyAddress || null,
+    stage: input.stage,
+    estimatedValueCents: input.estimatedValueCents ?? 0,
+    targetCloseAt: input.targetCloseAt ?? null,
+  }).$returningId();
+  await refreshCrmContactDealCount(input.ownerUserId, input.contactId);
+  const deals = await listCrmDeals(input.ownerUserId);
+  return deals.find((deal) => deal.id === created.id);
+}
+
+export async function updateCrmDealStage(input: { ownerUserId: number; dealId: number; stage: DealStageValue }) {
+  const db = await getDb();
+  if (!db) throw new Error("Database is not available for deals.");
+  const result = await db
+    .update(crmDeals)
+    .set({ stage: input.stage })
+    .where(and(eq(crmDeals.ownerUserId, input.ownerUserId), eq(crmDeals.id, input.dealId)));
+  if (!result[0]?.affectedRows) return undefined;
+  const deals = await listCrmDeals(input.ownerUserId);
+  return deals.find((deal) => deal.id === input.dealId);
 }
 
 export async function listSmsConversations(ownerUserId: number): Promise<SmsConversation[]> {
