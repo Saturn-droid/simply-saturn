@@ -1,6 +1,6 @@
 /* @vitest-environment jsdom */
 
-import { cleanup, fireEvent, render, screen } from "@testing-library/react";
+import { cleanup, fireEvent, render, screen, within } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import React from "react";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
@@ -124,7 +124,7 @@ describe("calendar participant dialog", () => {
     const user = userEvent.setup();
     render(<Calendar />);
 
-    await user.click(screen.getByRole("button", { name: /Edit event/i }));
+    await user.click(screen.getByRole("button", { name: /Buyer strategy call/i }));
     const start = screen.getByLabelText("Start time") as HTMLInputElement;
     const end = screen.getByLabelText(/End time/i) as HTMLInputElement;
     fireEvent.change(end, { target: { value: "2026-08-05T09:30" } });
@@ -132,5 +132,22 @@ describe("calendar participant dialog", () => {
 
     expect(screen.getByText("Edit calendar event")).toBeTruthy();
     expect(end.value).toBe("2026-08-05T11:30");
+  });
+
+  it("keeps all-day indicators separate and opens the remaining timed and multi-day events from See more", async () => {
+    const now = new Date(); const year = now.getFullYear(); const month = now.getMonth(); const day = Math.min(15, new Date(year, month + 1, 0).getDate());
+    const starts = (hour: number) => new Date(year, month, day, hour); const ends = (hour: number) => new Date(year, month, day, hour);
+    trpcMocks.eventsUseQuery.mockReturnValue({ data: [
+      { id: 201, title: "All-day inspection", startsAt: new Date(year, month, day, 0), endsAt: new Date(year, month, day + 1, 0), location: null, notes: null, participants: [] },
+      { id: 202, title: "Morning call", startsAt: starts(9), endsAt: ends(10), location: null, notes: null, participants: [] },
+      { id: 203, title: "Listing review", startsAt: starts(10), endsAt: ends(11), location: null, notes: null, participants: [] },
+      { id: 204, title: "Multi-day escrow", startsAt: new Date(year, month, day - 1, 15), endsAt: new Date(year, month, day + 2, 11), location: null, notes: null, participants: [] },
+    ], isLoading: false });
+    const user = userEvent.setup(); render(<Calendar />);
+    expect(screen.getByText("All day · 1")).toBeTruthy();
+    await user.click(screen.getByRole("button", { name: /See 1 more events on/i }));
+    const moreEvents = screen.getByRole("dialog", { name: /Events on/i });
+    expect(moreEvents).toBeTruthy();
+    expect(within(moreEvents).getByText("Multi-day escrow")).toBeTruthy();
   });
 });

@@ -90,3 +90,6 @@
 - [x] Add regression coverage for Reports query failure and missing-payload states.
 - [ ] Future provider work: configure a domain-specific no-reply email sender, then complete transactional member-invitation delivery, pending-invitation visibility, and acceptance notifications.
 - [ ] Future provider work: after Twilio supports approved custom messages and a restricted API key is available, revalidate permissions and complete the first explicitly approved SMS using the exact recipient and message body.
+- [x] Keep month-calendar day cells at a stable height while preserving the existing all-day event area beside each date.
+- [x] Cap visible timed and multi-day event rows in each month cell and provide a See more control for remaining events on that date.
+- [x] Add regression coverage for month-view overflow counts, all-day separation, and See more detail access.
