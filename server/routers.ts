@@ -78,6 +78,18 @@ const documentPayloadSchema = z.object({
   notes: z.string().trim().max(4000).optional(),
 });
 
+const campaignChannelSchema = z.enum(["email", "text", "mixed"]);
+const campaignAudienceSchema = z.enum(["all_contacts", "prospect", "active", "forever_client", "vendor"]);
+const campaignStatusSchema = z.enum(["draft", "scheduled", "paused", "completed"]);
+const campaignPayloadSchema = z.object({
+  name: z.string().trim().min(1).max(240),
+  objective: z.string().trim().max(400).optional(),
+  channel: campaignChannelSchema.default("email"),
+  audienceRule: campaignAudienceSchema.default("all_contacts"),
+  status: campaignStatusSchema.default("draft"),
+  scheduledAt: z.coerce.date().optional(),
+});
+
 async function validateCalendarEventPayload(ownerUserId: number, input: z.infer<typeof calendarEventPayloadSchema>) {
   if (input.endsAt.getTime() <= input.startsAt.getTime()) {
     throw new TRPCError({ code: "BAD_REQUEST", message: "End time must be later than the start time." });
@@ -313,6 +325,18 @@ export const appRouter = router({
         const document = await db.setCrmDocumentStatus({ ownerUserId: ctx.user.id, ...input });
         if (!document) throw new TRPCError({ code: "NOT_FOUND", message: "That document is unavailable." });
         return document;
+      }),
+  }),
+
+  campaigns: router({
+    list: protectedProcedure.query(({ ctx }) => db.listCrmCampaigns(ctx.user.id)),
+    create: protectedProcedure.input(campaignPayloadSchema).mutation(({ ctx, input }) => db.createCrmCampaign({ ownerUserId: ctx.user.id, ...input })),
+    setStatus: protectedProcedure
+      .input(z.object({ campaignId: z.number().int().positive(), status: campaignStatusSchema }))
+      .mutation(async ({ ctx, input }) => {
+        const campaign = await db.setCrmCampaignStatus({ ownerUserId: ctx.user.id, ...input });
+        if (!campaign) throw new TRPCError({ code: "NOT_FOUND", message: "That campaign is unavailable." });
+        return campaign;
       }),
   }),
 

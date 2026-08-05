@@ -15,6 +15,7 @@ import Inbox from "@/pages/Inbox";
 import Invite from "@/pages/Invite";
 import LegalPlaceholder from "@/pages/LegalPlaceholder";
 import Login from "@/pages/Login";
+import Marketing from "@/pages/Marketing";
 import NotFound from "@/pages/NotFound";
 import Pricing from "@/pages/Pricing";
 import Product from "@/pages/Product";
@@ -42,6 +43,7 @@ function Router() {
       <Route path="/app/calendar" component={Calendar} />
       <Route path="/app/deals" component={Deals} />
       <Route path="/app/documents" component={Documents} />
+      <Route path="/app/marketing" component={Marketing} />
       <Route path="/app/tasks" component={Tasks} />
       <Route path="/app/contacts/:contactId" component={ContactDetail} />
       <Route path="/app/contacts" component={Contacts} />

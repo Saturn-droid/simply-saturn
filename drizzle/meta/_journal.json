@@ -64,6 +64,13 @@
       "when": 1785957018414,
       "tag": "0008_modern_absorbing_man",
       "breakpoints": true
+    },
+    {
+      "idx": 9,
+      "version": "5",
+      "when": 1785957398524,
+      "tag": "0009_wealthy_carlie_cooper",
+      "breakpoints": true
     }
   ]
 }

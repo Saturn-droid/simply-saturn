@@ -11,6 +11,7 @@ import {
   calendarEvents,
   contactActivities,
   crmContacts,
+  crmCampaigns,
   crmDeals,
   crmDocuments,
   crmTasks,
@@ -123,6 +124,12 @@ export const documentTypeValues = ["listing", "offer", "disclosure", "contract",
 export type DocumentTypeValue = (typeof documentTypeValues)[number];
 export const documentStatusValues = ["requested", "received", "review", "approved", "sent"] as const;
 export type DocumentStatusValue = (typeof documentStatusValues)[number];
+export const campaignChannelValues = ["email", "text", "mixed"] as const;
+export type CampaignChannelValue = (typeof campaignChannelValues)[number];
+export const campaignAudienceValues = ["all_contacts", "prospect", "active", "forever_client", "vendor"] as const;
+export type CampaignAudienceValue = (typeof campaignAudienceValues)[number];
+export const campaignStatusValues = ["draft", "scheduled", "paused", "completed"] as const;
+export type CampaignStatusValue = (typeof campaignStatusValues)[number];
 
 function parseContactTypes(typesJson: string): ContactTypeValue[] {
   try {
@@ -521,6 +528,58 @@ export async function setCrmDocumentStatus(input: { ownerUserId: number; documen
   if (!result[0]?.affectedRows) return undefined;
   const documents = await listCrmDocuments(input.ownerUserId);
   return documents.find((document) => document.id === input.documentId);
+}
+
+export type CrmCampaignRecord = {
+  id: number;
+  ownerUserId: number;
+  name: string;
+  objective: string | null;
+  channel: CampaignChannelValue;
+  audienceRule: CampaignAudienceValue;
+  status: CampaignStatusValue;
+  scheduledAt: Date | null;
+  createdAt: Date;
+  updatedAt: Date;
+};
+
+export async function listCrmCampaigns(ownerUserId: number): Promise<CrmCampaignRecord[]> {
+  const db = await getDb();
+  if (!db) return [];
+  return db.select().from(crmCampaigns).where(eq(crmCampaigns.ownerUserId, ownerUserId)).orderBy(desc(crmCampaigns.updatedAt));
+}
+
+export async function createCrmCampaign(input: {
+  ownerUserId: number;
+  name: string;
+  objective?: string;
+  channel: CampaignChannelValue;
+  audienceRule: CampaignAudienceValue;
+  status: CampaignStatusValue;
+  scheduledAt?: Date;
+}) {
+  const db = await getDb();
+  if (!db) throw new Error("Database is not available for campaigns.");
+  const [created] = await db.insert(crmCampaigns).values({
+    ownerUserId: input.ownerUserId,
+    name: input.name,
+    objective: input.objective || null,
+    channel: input.channel,
+    audienceRule: input.audienceRule,
+    status: input.status,
+    scheduledAt: input.scheduledAt ?? null,
+  }).$returningId();
+  const campaigns = await listCrmCampaigns(input.ownerUserId);
+  return campaigns.find((campaign) => campaign.id === created.id);
+}
+
+export async function setCrmCampaignStatus(input: { ownerUserId: number; campaignId: number; status: CampaignStatusValue }) {
+  const db = await getDb();
+  if (!db) throw new Error("Database is not available for campaigns.");
+  const result = await db.update(crmCampaigns).set({ status: input.status }).where(and(eq(crmCampaigns.ownerUserId, input.ownerUserId), eq(crmCampaigns.id, input.campaignId)));
+  if (!result[0]?.affectedRows) return undefined;
+  const campaigns = await listCrmCampaigns(input.ownerUserId);
+  return campaigns.find((campaign) => campaign.id === input.campaignId);
 }
 
 export async function listSmsConversations(ownerUserId: number): Promise<SmsConversation[]> {

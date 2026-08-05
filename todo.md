@@ -80,3 +80,5 @@
 - [x] Add protected Tasks procedures and regression coverage for task creation, completion, due dates, and connected contact or deal context.
 - [x] Build the next non-provider queue item: a Documents workspace with owner-scoped tracking records, status controls, and optional contact or deal context.
 - [x] Add protected Documents procedures and regression coverage for document creation, status updates, and connected contact or deal context.
+- [x] Build the next non-provider queue item: a Marketing workspace with owner-scoped campaign records, audience context, and controlled lifecycle statuses.
+- [x] Add protected Marketing procedures and regression coverage for campaign creation, audience counts, and lifecycle transitions.

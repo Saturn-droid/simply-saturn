@@ -295,8 +295,33 @@ export const crmDocuments = mysqlTable(
   ],
 );
 
+/**
+ * Owner-scoped campaign planning records. Campaign delivery is intentionally
+ * not enabled here; this model tracks accountable planning and lifecycle state.
+ */
+export const crmCampaigns = mysqlTable(
+  "crmCampaigns",
+  {
+    id: int("id").autoincrement().primaryKey(),
+    ownerUserId: int("ownerUserId").notNull().references(() => users.id),
+    name: varchar("name", { length: 240 }).notNull(),
+    objective: varchar("objective", { length: 400 }),
+    channel: mysqlEnum("channel", ["email", "text", "mixed"]).default("email").notNull(),
+    audienceRule: mysqlEnum("audienceRule", ["all_contacts", "prospect", "active", "forever_client", "vendor"]).default("all_contacts").notNull(),
+    status: mysqlEnum("status", ["draft", "scheduled", "paused", "completed"]).default("draft").notNull(),
+    scheduledAt: timestamp("scheduledAt"),
+    createdAt: timestamp("createdAt").defaultNow().notNull(),
+    updatedAt: timestamp("updatedAt").defaultNow().onUpdateNow().notNull(),
+  },
+  (table) => [
+    index("crm_campaigns_owner_status_updated_idx").on(table.ownerUserId, table.status, table.updatedAt),
+    index("crm_campaigns_owner_audience_idx").on(table.ownerUserId, table.audienceRule),
+  ],
+);
+
 export type CrmContact = typeof crmContacts.$inferSelect;
 export type ContactActivity = typeof contactActivities.$inferSelect;
 export type CrmDeal = typeof crmDeals.$inferSelect;
 export type CrmTask = typeof crmTasks.$inferSelect;
 export type CrmDocument = typeof crmDocuments.$inferSelect;
+export type CrmCampaign = typeof crmCampaigns.$inferSelect;
