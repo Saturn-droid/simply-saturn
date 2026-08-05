@@ -502,3 +502,69 @@ export async function createCalendarEvent(input: {
 
   return event;
 }
+
+export async function updateCalendarEvent(input: {
+  ownerUserId: number;
+  eventId: number;
+  title: string;
+  startsAt: Date;
+  endsAt: Date;
+  location?: string;
+  notes?: string;
+  participants: Array<{
+    kind: "team" | "contact" | "external";
+    displayName?: string;
+    email: string;
+    userId?: number;
+  }>;
+}): Promise<CalendarEvent | undefined> {
+  const db = await getDb();
+  if (!db) throw new Error("Database is not available for calendar events.");
+
+  const existing = await db
+    .select()
+    .from(calendarEvents)
+    .where(and(eq(calendarEvents.id, input.eventId), eq(calendarEvents.ownerUserId, input.ownerUserId)))
+    .limit(1);
+  if (!existing[0]) return undefined;
+
+  await db
+    .update(calendarEvents)
+    .set({
+      title: input.title,
+      startsAt: input.startsAt,
+      endsAt: input.endsAt,
+      location: input.location?.trim() || null,
+      notes: input.notes?.trim() || null,
+    })
+    .where(and(eq(calendarEvents.id, input.eventId), eq(calendarEvents.ownerUserId, input.ownerUserId)));
+
+  await db.delete(calendarEventParticipants).where(eq(calendarEventParticipants.eventId, input.eventId));
+  if (input.participants.length > 0) {
+    const participantRows = await Promise.all(input.participants.map(async (participant) => {
+      const contact = participant.kind === "team"
+        ? undefined
+        : await findOrCreateCalendarContact({
+          ownerUserId: input.ownerUserId,
+          displayName: participant.displayName,
+          email: participant.email,
+        });
+      return {
+        eventId: input.eventId,
+        kind: participant.kind,
+        displayName: participant.displayName?.trim() || null,
+        email: participant.email,
+        userId: participant.kind === "team" ? participant.userId ?? null : null,
+        contactId: contact?.id ?? null,
+      };
+    }));
+    await db.insert(calendarEventParticipants).values(participantRows);
+  }
+
+  const updated = await db
+    .select()
+    .from(calendarEvents)
+    .where(and(eq(calendarEvents.id, input.eventId), eq(calendarEvents.ownerUserId, input.ownerUserId)))
+    .limit(1);
+  return updated[0];
+}

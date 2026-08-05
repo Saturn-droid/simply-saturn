@@ -1,6 +1,6 @@
 /* @vitest-environment jsdom */
 
-import { cleanup, render, screen } from "@testing-library/react";
+import { cleanup, fireEvent, render, screen } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import React from "react";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
@@ -8,6 +8,7 @@ import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 const trpcMocks = vi.hoisted(() => ({
   addTeamMemberUseMutation: vi.fn(),
   createUseMutation: vi.fn(),
+  updateUseMutation: vi.fn(),
   eventsUseQuery: vi.fn(),
   participantSuggestionsUseQuery: vi.fn(),
   teamDirectoryUseQuery: vi.fn(),
@@ -34,6 +35,7 @@ vi.mock("@/lib/trpc", () => ({
       teamDirectory: { useQuery: trpcMocks.teamDirectoryUseQuery },
       participantSuggestions: { useQuery: trpcMocks.participantSuggestionsUseQuery },
       create: { useMutation: trpcMocks.createUseMutation },
+      update: { useMutation: trpcMocks.updateUseMutation },
       addTeamMember: { useMutation: trpcMocks.addTeamMemberUseMutation },
     },
   },
@@ -65,6 +67,7 @@ beforeEach(() => {
     },
   });
   trpcMocks.createUseMutation.mockReturnValue(emptyMutation);
+  trpcMocks.updateUseMutation.mockReturnValue(emptyMutation);
   trpcMocks.addTeamMemberUseMutation.mockReturnValue(emptyMutation);
 });
 
@@ -90,5 +93,44 @@ describe("calendar participant dialog", () => {
     await user.type(participantInput, "outside@example.org");
     await user.click(screen.getByRole("button", { name: /Add outside@example\.org as an external guest/i }));
     expect(screen.getByLabelText("Remove outside@example.org")).toBeTruthy();
+  });
+
+  it("preserves the current duration when a new-event start time changes", () => {
+    render(<Calendar />);
+    const start = screen.getByLabelText("Start time") as HTMLInputElement;
+    const end = screen.getByLabelText(/End time/i) as HTMLInputElement;
+
+    fireEvent.change(start, { target: { value: "2026-08-05T09:00" } });
+    expect(end.value).toBe("2026-08-05T10:00");
+    fireEvent.change(end, { target: { value: "2026-08-05T09:30" } });
+    fireEvent.change(start, { target: { value: "2026-08-05T11:00" } });
+
+    expect(end.value).toBe("2026-08-05T11:30");
+  });
+
+  it("preserves an edited event's adjusted duration when its start time changes", async () => {
+    trpcMocks.eventsUseQuery.mockReturnValue({
+      data: [{
+        id: 72,
+        title: "Buyer strategy call",
+        startsAt: new Date("2026-08-05T09:00:00.000Z"),
+        endsAt: new Date("2026-08-05T10:00:00.000Z"),
+        location: null,
+        notes: null,
+        participants: [],
+      }],
+      isLoading: false,
+    });
+    const user = userEvent.setup();
+    render(<Calendar />);
+
+    await user.click(screen.getByRole("button", { name: /Edit event/i }));
+    const start = screen.getByLabelText("Start time") as HTMLInputElement;
+    const end = screen.getByLabelText(/End time/i) as HTMLInputElement;
+    fireEvent.change(end, { target: { value: "2026-08-05T09:30" } });
+    fireEvent.change(start, { target: { value: "2026-08-05T11:00" } });
+
+    expect(screen.getByText("Edit calendar event")).toBeTruthy();
+    expect(end.value).toBe("2026-08-05T11:30");
   });
 });

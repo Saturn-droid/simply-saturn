@@ -48,3 +48,7 @@
 - [x] Add runtime coverage for multiple active team members, contacts, and external email participants in calendar suggestions and event creation.
 - [x] Add UI-level regression coverage for calendar dialog suggestions and manual external-email entry.
 - [x] Add DOM-rendered calendar dialog interaction tests that verify suggestions render, a team or contact can be selected, and a valid external email can be added manually.
+- [x] Preserve the current event duration when a start time changes in the new-event dialog, including after manual end-time edits.
+- [x] Preserve the current event duration when a start time changes in the edit-event dialog, including after manual end-time edits.
+- [x] Add regression coverage for one-hour defaults and user-adjusted durations when calendar start times change.
+- [x] Add a scoped calendar edit-event dialog and update procedure so existing events can use the same duration-preserving timing behavior.

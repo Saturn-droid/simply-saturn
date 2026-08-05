@@ -2,10 +2,10 @@ import DashboardLayout from "@/components/DashboardLayout";
 import { Seo } from "@/components/Seo";
 import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { useAuth } from "@/_core/hooks/useAuth";
-import { isValidParticipantEmail, nextRoundedEventWindow, oneHourAfterSelectedStart, toDateTimeLocalValue } from "@/lib/calendarEventUtils";
+import { endValuePreservingDuration, isValidParticipantEmail, nextRoundedEventWindow, toDateTimeLocalValue } from "@/lib/calendarEventUtils";
 import { trpc } from "@/lib/trpc";
 import { cn } from "@/lib/utils";
-import { CalendarDays, CalendarPlus, CheckCircle2, Clock3, Mail, MapPin, Plus, UserRound, UsersRound, X } from "lucide-react";
+import { CalendarDays, CalendarPlus, CheckCircle2, Clock3, Mail, MapPin, Pencil, Plus, UserRound, UsersRound, X } from "lucide-react";
 import React, { useMemo, useState } from "react";
 import { toast } from "sonner";
 
@@ -47,7 +47,7 @@ export default function Calendar() {
   const utils = trpc.useUtils();
   const [dialogOpen, setDialogOpen] = useState(false);
   const [draft, setDraft] = useState<EventDraft>(newEventDraft);
-  const [endWasEdited, setEndWasEdited] = useState(false);
+  const [editingEventId, setEditingEventId] = useState<number | null>(null);
   const [participantInput, setParticipantInput] = useState("");
   const [participantPickerOpen, setParticipantPickerOpen] = useState(false);
   const [participants, setParticipants] = useState<SelectedParticipant[]>([]);
@@ -60,10 +60,22 @@ export default function Calendar() {
     enabled: isAuthenticated && participantPickerOpen,
     retry: false,
   });
+  const events = eventsQuery.data ?? [];
+
   const createMutation = trpc.calendar.create.useMutation({
     onSuccess: async () => {
       toast.success("Event created and participants saved.");
       setDialogOpen(false);
+      setEditingEventId(null);
+      await Promise.all([utils.calendar.list.invalidate(), utils.calendar.participantSuggestions.invalidate()]);
+    },
+    onError: (error) => toast.error(error.message),
+  });
+  const updateMutation = trpc.calendar.update.useMutation({
+    onSuccess: async () => {
+      toast.success("Event changes saved.");
+      setDialogOpen(false);
+      setEditingEventId(null);
       await Promise.all([utils.calendar.list.invalidate(), utils.calendar.participantSuggestions.invalidate()]);
     },
     onError: (error) => toast.error(error.message),
@@ -81,16 +93,36 @@ export default function Calendar() {
     setDraft(newEventDraft());
     setParticipants([]);
     setParticipantInput("");
-    setEndWasEdited(false);
+    setEditingEventId(null);
+    setDialogOpen(true);
+  };
+
+  const openEditEvent = (event: (typeof events)[number]) => {
+    setDraft({
+      title: event.title,
+      start: toDateTimeLocalValue(new Date(event.startsAt)),
+      end: toDateTimeLocalValue(new Date(event.endsAt)),
+      location: event.location || "",
+      notes: event.notes || "",
+    });
+    setParticipants(event.participants.map((participant) => ({
+      key: `${participant.kind}-${participant.email}`,
+      kind: participant.kind,
+      displayName: participant.displayName || participant.email,
+      email: participant.email,
+      userId: participant.userId ?? undefined,
+    })));
+    setParticipantInput("");
+    setEditingEventId(event.id);
     setDialogOpen(true);
   };
 
   const updateStart = (value: string) => {
-    setDraft((current) => {
-      const selectedStart = new Date(value);
-      const defaultEnd = Number.isNaN(selectedStart.getTime()) ? current.end : toDateTimeLocalValue(oneHourAfterSelectedStart(selectedStart));
-      return { ...current, start: value, end: endWasEdited ? current.end : defaultEnd };
-    });
+    setDraft((current) => ({
+      ...current,
+      start: value,
+      end: endValuePreservingDuration(current.start, current.end, value),
+    }));
   };
 
   const addParticipant = (participant: Omit<SelectedParticipant, "key">) => {
@@ -128,7 +160,7 @@ export default function Calendar() {
     const startsAt = new Date(draft.start);
     const endsAt = new Date(draft.end);
     if (!draft.title.trim()) {
-      toast.error("Add an event title before creating it.");
+      toast.error("Add an event title before saving it.");
       return;
     }
     if (Number.isNaN(startsAt.getTime()) || Number.isNaN(endsAt.getTime()) || endsAt <= startsAt) {
@@ -136,35 +168,39 @@ export default function Calendar() {
       return;
     }
     if (participants.some((participant) => participant.kind === "team" && !participant.userId)) {
-      toast.error("Choose that team member again before creating the event.");
+      toast.error("Choose that team member again before saving the event.");
       return;
     }
     const calendarParticipants = participants.map((participant) => {
-      if (participant.kind === "team") {
-        return { kind: "team" as const, displayName: participant.displayName, email: participant.email, userId: participant.userId! };
-      }
-      if (participant.kind === "contact") {
-        return { kind: "contact" as const, displayName: participant.displayName, email: participant.email };
-      }
+      if (participant.kind === "team") return { kind: "team" as const, displayName: participant.displayName, email: participant.email, userId: participant.userId! };
+      if (participant.kind === "contact") return { kind: "contact" as const, displayName: participant.displayName, email: participant.email };
       return { kind: "external" as const, displayName: participant.displayName, email: participant.email };
     });
-    createMutation.mutate({
-      clientEventId: typeof crypto !== "undefined" && crypto.randomUUID ? crypto.randomUUID() : `${Date.now()}-${Math.random()}`,
+    const eventPayload = {
       title: draft.title.trim(),
       startsAt,
       endsAt,
       location: draft.location.trim() || undefined,
       notes: draft.notes.trim() || undefined,
       participants: calendarParticipants,
+    };
+    if (editingEventId !== null) {
+      updateMutation.mutate({ eventId: editingEventId, ...eventPayload });
+      return;
+    }
+    createMutation.mutate({
+      clientEventId: typeof crypto !== "undefined" && crypto.randomUUID ? crypto.randomUUID() : `${Date.now()}-${Math.random()}`,
+      ...eventPayload,
     });
   };
 
   const teamMembers = suggestionsQuery.data?.teamMembers ?? [];
   const contacts = suggestionsQuery.data?.contacts ?? [];
   const canAddExternalEmail = isValidParticipantEmail(participantInput);
-  const events = eventsQuery.data ?? [];
   const teamDirectory = teamDirectoryQuery.data ?? [];
   const canManageTeam = user?.role === "admin";
+  const isEditing = editingEventId !== null;
+  const isSubmitting = createMutation.isPending || updateMutation.isPending;
 
   return (
     <DashboardLayout>
@@ -190,26 +226,26 @@ export default function Calendar() {
         <div className="overflow-hidden rounded-[1.35rem] border border-[#171b39]/9 bg-white shadow-[0_16px_45px_rgba(26,30,59,.06)]">
           <div className="flex items-center justify-between border-b border-[#171b39]/8 px-5 py-4"><div><p className="font-sans text-[0.62rem] font-extrabold uppercase tracking-[.13em] text-[#8a6c45]">Upcoming events</p><h2 className="mt-1 text-2xl text-[#282d50]">A shared view of what matters next.</h2></div><span className="grid h-10 w-10 place-items-center rounded-xl bg-[#ece8df] text-[#5c4e7a]"><CalendarDays size={18} /></span></div>
           {eventsQuery.isLoading ? <p className="px-5 py-12 text-center text-sm font-bold text-[#74798d]">Loading your calendar…</p> : null}
-          {!eventsQuery.isLoading && events.length === 0 ? <div className="grid min-h-80 place-items-center px-5 text-center"><div><span className="mx-auto grid h-12 w-12 place-items-center rounded-2xl bg-[#ece8df] text-[#5c4e7a]"><CalendarPlus size={22} /></span><h3 className="mt-4 text-2xl text-[#303657]">Create the first commitment.</h3><p className="mx-auto mt-2 max-w-md text-sm leading-6 text-[#74798d]">Every new event begins with a one-hour default so you can refine the timing and people without starting from an empty form.</p><button type="button" onClick={openNewEvent} className="ss-button-primary mt-5"><Plus size={16} />New event</button></div></div> : null}
-          {events.length > 0 ? <div className="divide-y divide-[#171b39]/8">{events.map((event) => <article key={event.id} className="grid gap-4 px-5 py-5 sm:grid-cols-[4.7rem_minmax(0,1fr)_auto] sm:items-center"><div className="rounded-xl bg-[#eef0f6] px-3 py-2 text-center text-[#394c72]"><p className="text-[0.62rem] font-extrabold uppercase tracking-[.1em]">{new Intl.DateTimeFormat(undefined, { month: "short" }).format(new Date(event.startsAt))}</p><p className="mt-0.5 text-2xl font-bold">{new Date(event.startsAt).getDate()}</p></div><div><h3 className="text-lg font-extrabold text-[#303657]">{event.title}</h3><p className="mt-1 flex flex-wrap items-center gap-x-4 gap-y-1 text-xs text-[#73798f]"><span className="inline-flex items-center gap-1.5"><Clock3 size={13} />{eventDateLabel(event.startsAt)} – {new Intl.DateTimeFormat(undefined, { hour: "numeric", minute: "2-digit" }).format(new Date(event.endsAt))}</span>{event.location ? <span className="inline-flex items-center gap-1.5"><MapPin size={13} />{event.location}</span> : null}</p></div><span className="inline-flex items-center gap-1.5 self-start rounded-full bg-[#edf4eb] px-2.5 py-1 text-[0.62rem] font-extrabold uppercase tracking-[.08em] text-[#557450] sm:self-auto"><UsersRound size={12} />{event.participants.length} {event.participants.length === 1 ? "participant" : "participants"}</span></article>)}</div> : null}
+          {!eventsQuery.isLoading && events.length === 0 ? <div className="grid min-h-80 place-items-center px-5 text-center"><div><span className="mx-auto grid h-12 w-12 place-items-center rounded-2xl bg-[#ece8df] text-[#5c4e7a]"><CalendarPlus size={22} /></span><h3 className="mt-4 text-2xl text-[#303657]">Create the first commitment.</h3><p className="mx-auto mt-2 max-w-md text-sm leading-6 text-[#74798d]">Every new event begins with a one-hour default. Changing its start time keeps the current duration so you can refine timing without starting over.</p><button type="button" onClick={openNewEvent} className="ss-button-primary mt-5"><Plus size={16} />New event</button></div></div> : null}
+          {events.length > 0 ? <div className="divide-y divide-[#171b39]/8">{events.map((event) => <article key={event.id} className="grid gap-4 px-5 py-5 sm:grid-cols-[4.7rem_minmax(0,1fr)_auto] sm:items-center"><div className="rounded-xl bg-[#eef0f6] px-3 py-2 text-center text-[#394c72]"><p className="text-[0.62rem] font-extrabold uppercase tracking-[.1em]">{new Intl.DateTimeFormat(undefined, { month: "short" }).format(new Date(event.startsAt))}</p><p className="mt-0.5 text-2xl font-bold">{new Date(event.startsAt).getDate()}</p></div><div><h3 className="text-lg font-extrabold text-[#303657]">{event.title}</h3><p className="mt-1 flex flex-wrap items-center gap-x-4 gap-y-1 text-xs text-[#73798f]"><span className="inline-flex items-center gap-1.5"><Clock3 size={13} />{eventDateLabel(event.startsAt)} – {new Intl.DateTimeFormat(undefined, { hour: "numeric", minute: "2-digit" }).format(new Date(event.endsAt))}</span>{event.location ? <span className="inline-flex items-center gap-1.5"><MapPin size={13} />{event.location}</span> : null}</p></div><div className="flex items-center gap-2 sm:flex-col sm:items-end"><span className="inline-flex items-center gap-1.5 rounded-full bg-[#edf4eb] px-2.5 py-1 text-[0.62rem] font-extrabold uppercase tracking-[.08em] text-[#557450]"><UsersRound size={12} />{event.participants.length} {event.participants.length === 1 ? "participant" : "participants"}</span><button type="button" onClick={() => openEditEvent(event)} className="inline-flex items-center gap-1 rounded-lg px-2 py-1 text-xs font-bold text-[#4d5880] transition hover:bg-[#eef0f6] hover:text-[#303657]"><Pencil size={12} />Edit event</button></div></article>)}</div> : null}
         </div>
-        <aside className="rounded-[1.35rem] bg-[#22294e] p-6 text-white shadow-[0_20px_50px_rgba(26,30,59,.18)]"><span className="grid h-10 w-10 place-items-center rounded-xl bg-white/8 text-[#dfcda9]"><CheckCircle2 size={19} /></span><p className="mt-7 font-sans text-[0.62rem] font-extrabold uppercase tracking-[.13em] text-[#d1a467]">Event rule</p><h2 className="mt-2 text-3xl leading-tight">A useful default, not a constraint.</h2><p className="mt-3 text-sm leading-6 text-[#c8c7d4]">New event end times begin one hour after the chosen start. You can revise the end time before creating the event.</p><div className="mt-7 rounded-xl border border-white/10 bg-white/6 p-3 text-xs leading-5 text-[#dedde7]"><strong className="block text-[#f0e5cc]">Participant choices</strong><span className="mt-1.5 block">Use matching team members or saved contacts, or enter a complete external email address.</span></div></aside>
+        <aside className="rounded-[1.35rem] bg-[#22294e] p-6 text-white shadow-[0_20px_50px_rgba(26,30,59,.18)]"><span className="grid h-10 w-10 place-items-center rounded-xl bg-white/8 text-[#dfcda9]"><CheckCircle2 size={19} /></span><p className="mt-7 font-sans text-[0.62rem] font-extrabold uppercase tracking-[.13em] text-[#d1a467]">Event rule</p><h2 className="mt-2 text-3xl leading-tight">A useful default, not a constraint.</h2><p className="mt-3 text-sm leading-6 text-[#c8c7d4]">New event end times begin one hour after the chosen start. When you change a start time, its current duration follows automatically until you change the end time again.</p><div className="mt-7 rounded-xl border border-white/10 bg-white/6 p-3 text-xs leading-5 text-[#dedde7]"><strong className="block text-[#f0e5cc]">Participant choices</strong><span className="mt-1.5 block">Use matching team members or saved contacts, or enter a complete external email address.</span></div></aside>
       </section>
 
-      <Dialog open={dialogOpen} onOpenChange={setDialogOpen}>
+      <Dialog open={dialogOpen} onOpenChange={(open) => { setDialogOpen(open); if (!open) setEditingEventId(null); }}>
         <DialogContent className="max-h-[90vh] overflow-y-auto border-[#171b39]/10 bg-[#fffdf9] text-[#303657] shadow-[0_24px_80px_rgba(22,26,53,.2)] sm:max-w-2xl">
           <DialogHeader>
-            <p className="font-sans text-[0.65rem] font-extrabold uppercase tracking-[.14em] text-[#8a6c45]">New calendar event</p>
-            <DialogTitle className="font-serif text-3xl text-[#252c53]">Create a clear commitment.</DialogTitle>
-            <DialogDescription className="leading-6 text-[#697087]">The end time starts one hour after the chosen start time. Change it any time before you create the event.</DialogDescription>
+            <p className="font-sans text-[0.65rem] font-extrabold uppercase tracking-[.14em] text-[#8a6c45]">{isEditing ? "Edit calendar event" : "New calendar event"}</p>
+            <DialogTitle className="font-serif text-3xl text-[#252c53]">{isEditing ? "Refine a clear commitment." : "Create a clear commitment."}</DialogTitle>
+            <DialogDescription className="leading-6 text-[#697087]">{isEditing ? "Changing the start time keeps the event’s current duration. Adjust the end time first whenever you want a different duration." : "The end time starts one hour after the chosen start time. Changing the start time keeps the current duration, and you can revise the end time whenever needed."}</DialogDescription>
           </DialogHeader>
           <form className="mt-2 space-y-5" onSubmit={submitEvent}>
             <label className="block"><span className="text-xs font-extrabold text-[#4c5270]">Event title</span><input value={draft.title} onChange={(event) => setDraft((current) => ({ ...current, title: event.target.value }))} maxLength={240} className="mt-1.5 w-full rounded-xl border border-[#171b39]/10 bg-[#fbfaf6] px-3 py-2.5 text-sm text-[#303657] outline-none transition focus:border-[#6a5889] focus:ring-2 focus:ring-[#6a5889]/12" placeholder="Listing review, client call, or team handoff" autoFocus required /></label>
-            <div className="grid gap-4 sm:grid-cols-2"><label className="block"><span className="text-xs font-extrabold text-[#4c5270]">Start time</span><input type="datetime-local" value={draft.start} onChange={(event) => updateStart(event.target.value)} className="mt-1.5 w-full rounded-xl border border-[#171b39]/10 bg-[#fbfaf6] px-3 py-2.5 text-sm text-[#303657] outline-none transition focus:border-[#6a5889] focus:ring-2 focus:ring-[#6a5889]/12" required /></label><label className="block"><span className="flex items-center justify-between text-xs font-extrabold text-[#4c5270]">End time <span className="font-medium text-[#8c90a1]">Defaults to +1 hour</span></span><input type="datetime-local" value={draft.end} onChange={(event) => { setEndWasEdited(true); setDraft((current) => ({ ...current, end: event.target.value })); }} className="mt-1.5 w-full rounded-xl border border-[#171b39]/10 bg-[#fbfaf6] px-3 py-2.5 text-sm text-[#303657] outline-none transition focus:border-[#6a5889] focus:ring-2 focus:ring-[#6a5889]/12" required /></label></div>
+            <div className="grid gap-4 sm:grid-cols-2"><label className="block"><span className="text-xs font-extrabold text-[#4c5270]">Start time</span><input type="datetime-local" value={draft.start} onChange={(event) => updateStart(event.target.value)} className="mt-1.5 w-full rounded-xl border border-[#171b39]/10 bg-[#fbfaf6] px-3 py-2.5 text-sm text-[#303657] outline-none transition focus:border-[#6a5889] focus:ring-2 focus:ring-[#6a5889]/12" required /></label><label className="block"><span className="flex items-center justify-between text-xs font-extrabold text-[#4c5270]">End time <span className="font-medium text-[#8c90a1]">{isEditing ? "Keeps current duration" : "Defaults to +1 hour"}</span></span><input type="datetime-local" value={draft.end} onChange={(event) => setDraft((current) => ({ ...current, end: event.target.value }))} className="mt-1.5 w-full rounded-xl border border-[#171b39]/10 bg-[#fbfaf6] px-3 py-2.5 text-sm text-[#303657] outline-none transition focus:border-[#6a5889] focus:ring-2 focus:ring-[#6a5889]/12" required /></label></div>
             <label className="block"><span className="text-xs font-extrabold text-[#4c5270]">Location <span className="font-medium text-[#8c90a1]">(optional)</span></span><div className="relative mt-1.5"><MapPin size={15} className="pointer-events-none absolute left-3 top-1/2 -translate-y-1/2 text-[#8b90a2]" /><input value={draft.location} onChange={(event) => setDraft((current) => ({ ...current, location: event.target.value }))} maxLength={320} className="w-full rounded-xl border border-[#171b39]/10 bg-[#fbfaf6] py-2.5 pl-9 pr-3 text-sm text-[#303657] outline-none transition focus:border-[#6a5889] focus:ring-2 focus:ring-[#6a5889]/12" placeholder="Office, property address, or video link" /></div></label>
             <div className="relative" onBlur={(event) => { if (!event.currentTarget.contains(event.relatedTarget as Node)) setParticipantPickerOpen(false); }}><div className="flex items-center justify-between"><label htmlFor="calendar-participant" className="text-xs font-extrabold text-[#4c5270]">Participants</label><span className="text-[0.68rem] text-[#7d8194]">Team, contacts, or any email</span></div><div className="mt-1.5 rounded-xl border border-[#171b39]/10 bg-[#fbfaf6] p-2 focus-within:border-[#6a5889] focus-within:ring-2 focus-within:ring-[#6a5889]/12"><div className="flex flex-wrap gap-1.5">{participants.map((participant) => <span key={participant.key} className={cn("inline-flex max-w-full items-center gap-1.5 rounded-lg px-2 py-1 text-xs font-bold", participant.kind === "team" ? "bg-[#e8edf7] text-[#42567f]" : participant.kind === "contact" ? "bg-[#edf4eb] text-[#557450]" : "bg-[#f6eee4] text-[#805d35]")}><span className="truncate">{participant.displayName}</span><button type="button" onClick={() => setParticipants((current) => current.filter((entry) => entry.key !== participant.key))} className="rounded p-0.5 hover:bg-black/8" aria-label={`Remove ${participant.displayName}`}><X size={12} /></button></span>)}</div><div className="relative flex items-center gap-2"><Mail size={15} className="ml-1 shrink-0 text-[#8b90a2]" /><input id="calendar-participant" value={participantInput} onFocus={() => setParticipantPickerOpen(true)} onChange={(event) => { setParticipantInput(event.target.value); setParticipantPickerOpen(true); }} onKeyDown={(event) => { if ((event.key === "Enter" || event.key === ",") && canAddExternalEmail) { event.preventDefault(); addExternalEmail(); } }} className="min-w-44 flex-1 bg-transparent py-1.5 text-sm text-[#303657] outline-none placeholder:text-[#969aac]" placeholder={participants.length ? "Add another participant" : "Search name or enter an email"} aria-autocomplete="list" aria-controls="calendar-participant-suggestions" aria-expanded={participantPickerOpen} /></div></div>{participantPickerOpen ? <div id="calendar-participant-suggestions" role="listbox" className="absolute z-20 mt-2 w-full overflow-hidden rounded-xl border border-[#171b39]/10 bg-white p-2 shadow-[0_18px_45px_rgba(26,30,59,.16)]"><p className="px-2 pb-1 pt-1 font-sans text-[0.58rem] font-extrabold uppercase tracking-[.12em] text-[#8a6c45]">Team members</p>{teamMembers.length > 0 ? teamMembers.map((member) => <button key={`team-${member.id}`} type="button" role="option" onMouseDown={(event) => event.preventDefault()} onClick={() => addParticipant({ kind: "team", displayName: member.displayName, email: member.email, userId: member.userId })} className="flex w-full items-center gap-2 rounded-lg px-2 py-2 text-left hover:bg-[#f3f4f8]"><span className="grid h-7 w-7 place-items-center rounded-lg bg-[#e8edf7] text-[#46608d]"><UserRound size={14} /></span><span className="min-w-0"><strong className="block truncate text-xs text-[#303657]">{member.displayName}</strong><small className="block truncate text-[0.68rem] text-[#767c90]">{member.email}</small></span></button>) : <p className="px-2 py-2 text-xs text-[#7d8194]">No matching team members yet.</p>}<p className="mt-1 border-t border-[#171b39]/8 px-2 pb-1 pt-3 font-sans text-[0.58rem] font-extrabold uppercase tracking-[.12em] text-[#8a6c45]">Contacts</p>{contacts.length > 0 ? contacts.map((contact) => <button key={`contact-${contact.id}`} type="button" role="option" onMouseDown={(event) => event.preventDefault()} onClick={() => addParticipant({ kind: "contact", displayName: contact.displayName, email: contact.email })} className="flex w-full items-center gap-2 rounded-lg px-2 py-2 text-left hover:bg-[#f3f4f8]"><span className="grid h-7 w-7 place-items-center rounded-lg bg-[#edf4eb] text-[#557450]"><UsersRound size={14} /></span><span className="min-w-0"><strong className="block truncate text-xs text-[#303657]">{contact.displayName}</strong><small className="block truncate text-[0.68rem] text-[#767c90]">{contact.email}</small></span></button>) : <p className="px-2 py-2 text-xs text-[#7d8194]">Saved calendar contacts will appear here as you use them.</p>}{canAddExternalEmail ? <button type="button" onMouseDown={(event) => event.preventDefault()} onClick={addExternalEmail} className="mt-2 flex w-full items-center gap-2 rounded-lg border border-[#d8c39b]/45 bg-[#fcf7ed] px-2 py-2 text-left text-xs font-bold text-[#78572f]"><Mail size={14} />Add <span className="truncate">{participantInput.trim()}</span> as an external guest</button> : <p className="mt-2 px-2 pb-1 text-[0.68rem] leading-4 text-[#8a8f9f]">Enter a complete email address to invite someone who is not in Simply Saturn.</p>}</div> : null}</div>
             <label className="block"><span className="text-xs font-extrabold text-[#4c5270]">Notes <span className="font-medium text-[#8c90a1]">(optional)</span></span><textarea value={draft.notes} onChange={(event) => setDraft((current) => ({ ...current, notes: event.target.value }))} maxLength={4000} className="mt-1.5 min-h-24 w-full resize-y rounded-xl border border-[#171b39]/10 bg-[#fbfaf6] px-3 py-2.5 text-sm leading-6 text-[#303657] outline-none transition focus:border-[#6a5889] focus:ring-2 focus:ring-[#6a5889]/12" placeholder="Add useful preparation, property, or coordination details." /></label>
-            <DialogFooter><button type="button" onClick={() => setDialogOpen(false)} className="ss-button-secondary justify-center">Cancel</button><button type="submit" disabled={createMutation.isPending} className="ss-button-primary justify-center disabled:cursor-not-allowed disabled:opacity-50">{createMutation.isPending ? "Creating event…" : "Create event"}<CalendarPlus size={16} /></button></DialogFooter>
+            <DialogFooter><button type="button" onClick={() => { setDialogOpen(false); setEditingEventId(null); }} className="ss-button-secondary justify-center">Cancel</button><button type="submit" disabled={isSubmitting} className="ss-button-primary justify-center disabled:cursor-not-allowed disabled:opacity-50">{isSubmitting ? (isEditing ? "Saving changes…" : "Creating event…") : (isEditing ? "Save changes" : "Create event")}<CalendarPlus size={16} /></button></DialogFooter>
           </form>
         </DialogContent>
       </Dialog>

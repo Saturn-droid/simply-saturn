@@ -4,6 +4,24 @@ export function oneHourAfterSelectedStart(start: Date): Date {
   return new Date(start.getTime() + 60 * 60 * 1000);
 }
 
+/**
+ * Move an event's end time by the same offset as its start time. A valid
+ * user-adjusted duration is always preferred; the one-hour default is only a
+ * fallback for incomplete or invalid draft values.
+ */
+export function endValuePreservingDuration(previousStartValue: string, previousEndValue: string, nextStartValue: string): string {
+  const previousStart = new Date(previousStartValue);
+  const previousEnd = new Date(previousEndValue);
+  const nextStart = new Date(nextStartValue);
+  if (Number.isNaN(nextStart.getTime())) return previousEndValue;
+
+  const currentDuration = previousEnd.getTime() - previousStart.getTime();
+  const duration = Number.isFinite(currentDuration) && currentDuration > 0
+    ? currentDuration
+    : 60 * 60 * 1000;
+  return toDateTimeLocalValue(new Date(nextStart.getTime() + duration));
+}
+
 export function isValidParticipantEmail(value: string): boolean {
   return participantEmailPattern.test(value.trim());
 }

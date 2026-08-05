@@ -3,6 +3,7 @@ import { beforeEach, describe, expect, it, vi } from "vitest";
 const calendarDb = vi.hoisted(() => ({
   addWorkspaceTeamMemberByEmail: vi.fn(),
   createCalendarEvent: vi.fn(),
+  updateCalendarEvent: vi.fn(),
   isWorkspaceTeamMember: vi.fn(),
   listCalendarEvents: vi.fn(),
   listCalendarParticipantSuggestions: vi.fn(),
@@ -53,6 +54,7 @@ describe("calendar participant runtime contract", () => {
     calendarDb.isWorkspaceTeamMember.mockResolvedValue(true);
     calendarDb.addWorkspaceTeamMemberByEmail.mockResolvedValue({ id: 57, kind: "team", displayName: "Alex Agent", email: "alex@example.com", userId: 57, isOwner: false });
     calendarDb.createCalendarEvent.mockImplementation(async (input: unknown) => ({ id: 91, ...input as object }));
+    calendarDb.updateCalendarEvent.mockImplementation(async (input: unknown) => ({ id: 91, ...input as object }));
   });
 
   it("returns multiple team members alongside matching saved contacts", async () => {
@@ -97,6 +99,25 @@ describe("calendar participant runtime contract", () => {
         { kind: "contact", displayName: "Priya Prospect", email: "priya@example.com" },
         { kind: "external", displayName: "Counsel", email: "counsel@example.org" },
       ],
+    }));
+  });
+
+  it("updates an owned calendar event through the same scoped participant contract", async () => {
+    await caller().calendar.update({
+      eventId: 91,
+      title: "Rescheduled listing review",
+      startsAt: new Date("2026-08-05T16:00:00.000Z"),
+      endsAt: new Date("2026-08-05T16:30:00.000Z"),
+      participants: [{ kind: "team", displayName: "Alex Agent", email: "alex@example.com", userId: 57 }],
+    });
+
+    expect(calendarDb.isWorkspaceTeamMember).toHaveBeenCalledWith({ ownerUserId: 41, memberUserId: 57 });
+    expect(calendarDb.updateCalendarEvent).toHaveBeenCalledWith(expect.objectContaining({
+      ownerUserId: 41,
+      eventId: 91,
+      title: "Rescheduled listing review",
+      startsAt: new Date("2026-08-05T16:00:00.000Z"),
+      endsAt: new Date("2026-08-05T16:30:00.000Z"),
     }));
   });
 });
