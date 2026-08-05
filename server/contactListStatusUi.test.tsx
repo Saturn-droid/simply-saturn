@@ -23,7 +23,7 @@ const contact = {
 };
 
 describe("controlled Contacts status field", () => {
-  it("keeps a custom saved label visible and clears it immediately on removal", () => {
+  it("saves a custom status and retains the controlled value after blur", () => {
     const onStatusChange = vi.fn();
     render(<ContactListTable contacts={[contact]} onOpenContact={vi.fn()} onStatusChange={onStatusChange} />);
     const input = screen.getByLabelText("Update status for Tiffany Hoskins") as HTMLInputElement;
@@ -31,8 +31,19 @@ describe("controlled Contacts status field", () => {
     fireEvent.blur(input);
     expect(onStatusChange).toHaveBeenCalledWith(7, "Nurture next quarter");
     expect(input.value).toBe("Nurture next quarter");
-    fireEvent.click(screen.getByRole("button", { name: "Remove Tiffany Hoskins status" }));
-    expect(onStatusChange).toHaveBeenLastCalledWith(7, null);
+  });
+
+  it("prioritizes immediate status removal over a pending blur save", () => {
+    const onStatusChange = vi.fn();
+    render(<ContactListTable contacts={[contact]} onOpenContact={vi.fn()} onStatusChange={onStatusChange} />);
+    const input = screen.getByLabelText("Update status for Tiffany Hoskins") as HTMLInputElement;
+    const remove = screen.getByRole("button", { name: "Remove Tiffany Hoskins status" });
+    fireEvent.change(input, { target: { value: "Nurture next quarter" } });
+    fireEvent.pointerDown(remove);
+    fireEvent.blur(input);
+    fireEvent.click(remove);
+    expect(onStatusChange).toHaveBeenCalledTimes(1);
+    expect(onStatusChange).toHaveBeenCalledWith(7, null);
     expect(input.value).toBe("");
   });
 });
