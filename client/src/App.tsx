@@ -19,6 +19,7 @@ import Login from "@/pages/Login";
 import Marketing from "@/pages/Marketing";
 import NotFound from "@/pages/NotFound";
 import Pricing from "@/pages/Pricing";
+import Reports from "@/pages/Reports";
 import Product from "@/pages/Product";
 import SignUp from "@/pages/SignUp";
 import Team from "@/pages/Team";
@@ -46,6 +47,7 @@ function Router() {
       <Route path="/app/documents" component={Documents} />
       <Route path="/app/marketing" component={Marketing} />
       <Route path="/app/automations" component={Automations} />
+      <Route path="/app/reports" component={Reports} />
       <Route path="/app/tasks" component={Tasks} />
       <Route path="/app/contacts/:contactId" component={ContactDetail} />
       <Route path="/app/contacts" component={Contacts} />

@@ -363,6 +363,10 @@ export const appRouter = router({
       }),
   }),
 
+  reports: router({
+    overview: protectedProcedure.query(({ ctx }) => db.getOperationalReport(ctx.user.id)),
+  }),
+
   team: router({
     list: protectedProcedure.query(async ({ ctx }) => {
       const workspaceOwnerId = await db.resolveWorkspaceOwnerUserId(ctx.user.id);

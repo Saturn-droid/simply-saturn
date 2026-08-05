@@ -1,0 +1,6 @@
+import { beforeEach, describe, expect, it, vi } from "vitest";
+const reportDb = vi.hoisted(() => ({ getOperationalReport: vi.fn() }));
+vi.mock("./db", async () => ({ ...(await vi.importActual<typeof import("./db")>("./db")), ...reportDb }));
+import { appRouter } from "./routers";
+const owner = { id: 41, openId: "reports-owner", name: "Reports Owner", email: "owner@example.com", loginMethod: null, role: "admin" as const, createdAt: new Date(), updatedAt: new Date(), lastSignedIn: new Date() };
+describe("Reports runtime contract", () => { beforeEach(() => { vi.resetAllMocks(); reportDb.getOperationalReport.mockResolvedValue({ contactCount: 8, eligibleContactCount: 6, activeDealCount: 3, pipelineValueCents: 92500000, closedDealCount: 1, openTaskCount: 4, overdueTaskCount: 1, campaignPlanCount: 2, documentReviewCount: 3, stageCounts: [{ stage: "offer", count: 2, valueCents: 65000000 }], contactStatusCounts: [{ status: "prospect", count: 4 }] }); }); it("returns an owner-scoped operational aggregate", async () => { const report = await appRouter.createCaller({ user: owner } as never).reports.overview(); expect(reportDb.getOperationalReport).toHaveBeenCalledWith(41); expect(report).toMatchObject({ pipelineValueCents: 92500000, openTaskCount: 4, stageCounts: [{ stage: "offer", count: 2 }] }); }); });

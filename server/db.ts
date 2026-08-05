@@ -638,6 +638,58 @@ export async function setCrmAutomationRuleStatus(input: { ownerUserId: number; r
   return rules.find((rule) => rule.id === input.ruleId);
 }
 
+export type OperationalReport = {
+  contactCount: number;
+  eligibleContactCount: number;
+  activeDealCount: number;
+  pipelineValueCents: number;
+  closedDealCount: number;
+  openTaskCount: number;
+  overdueTaskCount: number;
+  campaignPlanCount: number;
+  documentReviewCount: number;
+  stageCounts: Array<{ stage: string; count: number; valueCents: number }>;
+  contactStatusCounts: Array<{ status: string; count: number }>;
+};
+
+export async function getOperationalReport(ownerUserId: number): Promise<OperationalReport> {
+  const [contacts, deals, tasks, campaigns, documents] = await Promise.all([
+    listCrmContacts({ ownerUserId }),
+    listCrmDeals(ownerUserId),
+    listCrmTasks(ownerUserId),
+    listCrmCampaigns(ownerUserId),
+    listCrmDocuments(ownerUserId),
+  ]);
+  const now = Date.now();
+  const activeDeals = deals.filter((deal) => !["closed", "lost"].includes(deal.stage));
+  const stageMap = new Map<string, { count: number; valueCents: number }>();
+  for (const deal of deals) {
+    const current = stageMap.get(deal.stage) ?? { count: 0, valueCents: 0 };
+    current.count += 1;
+    current.valueCents += deal.estimatedValueCents;
+    stageMap.set(deal.stage, current);
+  }
+  const statusMap = new Map<string, number>();
+  for (const contact of contacts) {
+    if (!contact.status) continue;
+    statusMap.set(contact.status, (statusMap.get(contact.status) ?? 0) + 1);
+  }
+  const openTasks = tasks.filter((task) => task.status === "open");
+  return {
+    contactCount: contacts.length,
+    eligibleContactCount: contacts.filter((contact) => !["dead", "dnc"].includes(contact.status ?? "")).length,
+    activeDealCount: activeDeals.length,
+    pipelineValueCents: activeDeals.reduce((total, deal) => total + deal.estimatedValueCents, 0),
+    closedDealCount: deals.filter((deal) => deal.stage === "closed").length,
+    openTaskCount: openTasks.length,
+    overdueTaskCount: openTasks.filter((task) => task.dueAt && task.dueAt.getTime() < now).length,
+    campaignPlanCount: campaigns.filter((campaign) => ["draft", "scheduled"].includes(campaign.status)).length,
+    documentReviewCount: documents.filter((document) => document.status === "review").length,
+    stageCounts: Array.from(stageMap.entries()).map(([stage, values]) => ({ stage, ...values })).sort((a, b) => b.valueCents - a.valueCents || b.count - a.count),
+    contactStatusCounts: Array.from(statusMap.entries()).map(([status, count]) => ({ status, count })).sort((a, b) => b.count - a.count || a.status.localeCompare(b.status)),
+  };
+}
+
 export async function listSmsConversations(ownerUserId: number): Promise<SmsConversation[]> {
   const db = await getDb();
   if (!db) return [];

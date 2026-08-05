@@ -84,3 +84,7 @@
 - [x] Add protected Marketing procedures and regression coverage for campaign creation, audience counts, and lifecycle transitions.
 - [x] Build the next non-provider queue item: an Automations workspace with owner-scoped rules, trigger and action context, and controlled activation states.
 - [x] Add protected Automations procedures and regression coverage for rule creation, safe activation toggles, and lifecycle transitions without executing outbound communication.
+- [x] Build the next non-provider queue item: a Reports workspace with owner-scoped operational metrics drawn from real contacts, deals, tasks, and campaign plans.
+- [x] Add protected Reports procedures and regression coverage for owner-scoped metric aggregation and reporting displays.
+- [x] Add an explicit Reports error or empty-state branch so unavailable overview data does not appear to load indefinitely.
+- [x] Add regression coverage for Reports query failure and missing-payload states.
