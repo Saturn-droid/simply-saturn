@@ -9,8 +9,9 @@ const routes = readFileSync(`${root}/client/src/App.tsx`, "utf8");
 describe("public authentication branding", () => {
   it("uses the sales-brand auth shell while retaining the login route and secure entry action", () => {
     expect(authLayout).toContain("ss-auth-shell");
-    expect(authLayout).toContain("The CRM built for real estate teams");
-    expect(authLayout).toContain("<BrandMark inverse");
+    expect(authLayout).toContain("Secure workspace access");
+    expect(authLayout).toContain("ssm-header ss-auth-header");
+    expect(authLayout).toContain("ss-auth-wave");
     expect(login).toContain("startLogin()");
     expect(routes).toContain('path="/login"');
   });

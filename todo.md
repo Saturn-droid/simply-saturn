@@ -95,3 +95,6 @@
 - [x] Add regression coverage for month-view overflow counts, all-day separation, and See more detail access.
 - [x] Restyle the sign-in route and any related authentication entry screens to match the established dark Simply Saturn sales-page branding without altering the main sales pages.
 - [x] Add regression coverage for the branded sign-in route and its authentication entry behavior.
+- [x] Refine the login composition to match the main sales hero’s single-scene structure, spacing, and hierarchy more closely than the current split experience.
+- [x] Verify and, if needed, correct month-calendar See more overflow behavior for timed and multi-day events without altering all-day placement.
+- [x] Verify and, if needed, correct duration-preserving start-time changes for new and edited calendar events.
