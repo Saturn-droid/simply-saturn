@@ -1,6 +1,7 @@
 import { Toaster } from "@/components/ui/sonner";
 import { TooltipProvider } from "@/components/ui/tooltip";
 import About from "@/pages/About";
+import Calendar from "@/pages/Calendar";
 import Contact from "@/pages/Contact";
 import Dashboard from "@/pages/Dashboard";
 import Features from "@/pages/Features";
@@ -32,6 +33,7 @@ function Router() {
       <Route path="/invite" component={Invite} />
       <Route path="/forgot-password" component={ForgotPassword} />
       <Route path="/app/inbox" component={Inbox} />
+      <Route path="/app/calendar" component={Calendar} />
       <Route path="/app" component={Dashboard} />
       <Route path="/privacy" component={LegalPlaceholder} />
       <Route path="/terms" component={LegalPlaceholder} />

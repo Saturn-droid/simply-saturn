@@ -81,6 +81,18 @@ describe("Simply Saturn product foundation", () => {
     expect(styles).toContain(".ssm-wave");
   });
 
+  it("keeps the Solutions control as a usable menu of clickable solution destinations", async () => {
+    const header = await clientSource("components/marketing/SiteHeader.tsx");
+
+    expect(header).toContain("ssm-solutions-panel");
+    expect(header).toContain('role="menuitem"');
+    expect(header).toContain('href: "/product#relationship-intelligence"');
+    expect(header).toContain('href: "/product#team-execution"');
+    const styles = await clientSource("index.css");
+    expect(styles).toContain(".ssm-solutions-panel { position: absolute; z-index: 60");
+    expect(styles).toContain("pointer-events: auto");
+  });
+
   it("keeps the demo, sign-in, onboarding, invite, and recovery foundations accessible and clearly staged", async () => {
     const [contact, login, signUp, invite, recovery] = await Promise.all([
       clientSource("pages/Contact.tsx"),

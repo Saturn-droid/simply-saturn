@@ -1,7 +1,14 @@
-import { and, desc, eq } from "drizzle-orm";
+import { and, asc, desc, eq, inArray } from "drizzle-orm";
 import { drizzle } from "drizzle-orm/mysql2";
 import {
+  CalendarContact,
+  CalendarEvent,
+  CalendarEventParticipant,
   InsertUser,
+  calendarContacts,
+  calendarEventParticipants,
+  calendarEvents,
+  workspaceTeamMembers,
   SmsConversation,
   SmsMessage,
   smsConversations,
@@ -238,4 +245,260 @@ export async function touchSmsConversation(input: {
       lastMessageAt: new Date(),
     })
     .where(eq(smsConversations.id, input.conversationId));
+}
+
+export type CalendarEventWithParticipants = CalendarEvent & {
+  participants: CalendarEventParticipant[];
+};
+
+export type CalendarParticipantSuggestion = {
+  id: number;
+  kind: "team" | "contact";
+  displayName: string;
+  email: string;
+  userId?: number;
+};
+
+export type WorkspaceTeamDirectoryMember = CalendarParticipantSuggestion & {
+  kind: "team";
+  userId: number;
+  isOwner: boolean;
+};
+
+export async function ensureWorkspaceOwnerTeamMembership(ownerUserId: number): Promise<void> {
+  const db = await getDb();
+  if (!db) return;
+
+  await db.insert(workspaceTeamMembers).values({
+    ownerUserId,
+    memberUserId: ownerUserId,
+    status: "active",
+  }).onDuplicateKeyUpdate({ set: { status: "active" } });
+}
+
+export async function isWorkspaceTeamMember(input: {
+  ownerUserId: number;
+  memberUserId: number;
+}): Promise<boolean> {
+  const db = await getDb();
+  if (!db) return false;
+
+  await ensureWorkspaceOwnerTeamMembership(input.ownerUserId);
+  const rows = await db
+    .select({ id: workspaceTeamMembers.id })
+    .from(workspaceTeamMembers)
+    .where(and(
+      eq(workspaceTeamMembers.ownerUserId, input.ownerUserId),
+      eq(workspaceTeamMembers.memberUserId, input.memberUserId),
+      eq(workspaceTeamMembers.status, "active"),
+    ))
+    .limit(1);
+  return Boolean(rows[0]);
+}
+
+export async function listWorkspaceTeamMembers(ownerUserId: number): Promise<WorkspaceTeamDirectoryMember[]> {
+  const db = await getDb();
+  if (!db) return [];
+
+  await ensureWorkspaceOwnerTeamMembership(ownerUserId);
+  const rows = await db
+    .select({ userId: users.id, name: users.name, email: users.email })
+    .from(workspaceTeamMembers)
+    .innerJoin(users, eq(workspaceTeamMembers.memberUserId, users.id))
+    .where(and(
+      eq(workspaceTeamMembers.ownerUserId, ownerUserId),
+      eq(workspaceTeamMembers.status, "active"),
+    ))
+    .orderBy(asc(users.name), asc(users.email));
+
+  return rows
+    .filter((member) => Boolean(member.email))
+    .map((member) => ({
+      id: member.userId,
+      kind: "team" as const,
+      displayName: member.name?.trim() || member.email!,
+      email: member.email!,
+      userId: member.userId,
+      isOwner: member.userId === ownerUserId,
+    }));
+}
+
+export async function addWorkspaceTeamMemberByEmail(input: {
+  ownerUserId: number;
+  email: string;
+}): Promise<WorkspaceTeamDirectoryMember | undefined> {
+  const db = await getDb();
+  if (!db) throw new Error("Database is not available for workspace team membership.");
+
+  const normalizedEmail = input.email.trim().toLocaleLowerCase();
+  const usersWithEmail = await db
+    .select({ id: users.id, name: users.name, email: users.email })
+    .from(users)
+    .where(eq(users.email, normalizedEmail))
+    .limit(1);
+  const member = usersWithEmail[0];
+  if (!member?.email) return undefined;
+
+  await ensureWorkspaceOwnerTeamMembership(input.ownerUserId);
+  await db.insert(workspaceTeamMembers).values({
+    ownerUserId: input.ownerUserId,
+    memberUserId: member.id,
+    status: "active",
+  }).onDuplicateKeyUpdate({ set: { status: "active" } });
+
+  const directory = await listWorkspaceTeamMembers(input.ownerUserId);
+  return directory.find((entry) => entry.userId === member.id);
+}
+
+export async function listCalendarEvents(ownerUserId: number): Promise<CalendarEventWithParticipants[]> {
+  const db = await getDb();
+  if (!db) return [];
+
+  const events = await db
+    .select()
+    .from(calendarEvents)
+    .where(eq(calendarEvents.ownerUserId, ownerUserId))
+    .orderBy(asc(calendarEvents.startsAt));
+
+  if (events.length === 0) return [];
+
+  const participants = await db
+    .select()
+    .from(calendarEventParticipants)
+    .where(inArray(calendarEventParticipants.eventId, events.map((event) => event.id)));
+
+  return events.map((event) => ({
+    ...event,
+    participants: participants.filter((participant) => participant.eventId === event.id),
+  }));
+}
+
+export async function listCalendarParticipantSuggestions(input: {
+  ownerUserId: number;
+  query: string;
+}): Promise<{ teamMembers: CalendarParticipantSuggestion[]; contacts: CalendarParticipantSuggestion[] }> {
+  const db = await getDb();
+  if (!db) return { teamMembers: [], contacts: [] };
+
+  const normalizedQuery = input.query.trim().toLocaleLowerCase();
+  const matches = (value?: string | null) => !normalizedQuery || value?.toLocaleLowerCase().includes(normalizedQuery);
+
+  const teamMembers = (await listWorkspaceTeamMembers(input.ownerUserId))
+    .filter((member) => matches(member.displayName) || matches(member.email))
+    .slice(0, 8);
+
+  const contactRows = await db
+    .select()
+    .from(calendarContacts)
+    .where(eq(calendarContacts.ownerUserId, input.ownerUserId))
+    .orderBy(desc(calendarContacts.updatedAt))
+    .limit(25);
+  const contacts = contactRows
+    .filter((contact) => matches(contact.name) || matches(contact.email))
+    .slice(0, 8)
+    .map((contact) => ({
+      id: contact.id,
+      kind: "contact" as const,
+      displayName: contact.name?.trim() || contact.email,
+      email: contact.email,
+    }));
+
+  return { teamMembers, contacts };
+}
+
+async function findOrCreateCalendarContact(input: {
+  ownerUserId: number;
+  displayName?: string;
+  email: string;
+}): Promise<CalendarContact> {
+  const db = await getDb();
+  if (!db) throw new Error("Database is not available for calendar contacts.");
+
+  const existing = await db
+    .select()
+    .from(calendarContacts)
+    .where(and(eq(calendarContacts.ownerUserId, input.ownerUserId), eq(calendarContacts.email, input.email)))
+    .limit(1);
+  if (existing[0]) return existing[0];
+
+  await db.insert(calendarContacts).values({
+    ownerUserId: input.ownerUserId,
+    name: input.displayName?.trim() || null,
+    email: input.email,
+  });
+
+  const created = await db
+    .select()
+    .from(calendarContacts)
+    .where(and(eq(calendarContacts.ownerUserId, input.ownerUserId), eq(calendarContacts.email, input.email)))
+    .limit(1);
+  if (!created[0]) throw new Error("Calendar contact could not be created.");
+  return created[0];
+}
+
+export async function createCalendarEvent(input: {
+  ownerUserId: number;
+  clientEventId: string;
+  title: string;
+  startsAt: Date;
+  endsAt: Date;
+  location?: string;
+  notes?: string;
+  participants: Array<{
+    kind: "team" | "contact" | "external";
+    displayName?: string;
+    email: string;
+    userId?: number;
+  }>;
+}): Promise<CalendarEvent> {
+  const db = await getDb();
+  if (!db) throw new Error("Database is not available for calendar events.");
+
+  const existing = await db
+    .select()
+    .from(calendarEvents)
+    .where(and(eq(calendarEvents.ownerUserId, input.ownerUserId), eq(calendarEvents.clientEventId, input.clientEventId)))
+    .limit(1);
+  if (existing[0]) return existing[0];
+
+  await db.insert(calendarEvents).values({
+    ownerUserId: input.ownerUserId,
+    clientEventId: input.clientEventId,
+    title: input.title,
+    startsAt: input.startsAt,
+    endsAt: input.endsAt,
+    location: input.location?.trim() || null,
+    notes: input.notes?.trim() || null,
+  });
+
+  const created = await db
+    .select()
+    .from(calendarEvents)
+    .where(and(eq(calendarEvents.ownerUserId, input.ownerUserId), eq(calendarEvents.clientEventId, input.clientEventId)))
+    .limit(1);
+  const event = created[0];
+  if (!event) throw new Error("Calendar event could not be created.");
+
+  if (input.participants.length > 0) {
+    const participantRows = await Promise.all(input.participants.map(async (participant) => {
+      const contact = participant.kind === "team"
+        ? undefined
+        : await findOrCreateCalendarContact({
+          ownerUserId: input.ownerUserId,
+          displayName: participant.displayName,
+          email: participant.email,
+        });
+      return {
+        eventId: event.id,
+        kind: participant.kind,
+        displayName: participant.displayName?.trim() || null,
+        email: participant.email,
+        userId: participant.kind === "team" ? participant.userId ?? null : null,
+        contactId: contact?.id ?? null,
+      };
+    }));
+    await db.insert(calendarEventParticipants).values(participantRows);
+  }
+
+  return event;
 }

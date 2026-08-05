@@ -7,6 +7,25 @@ import { systemRouter } from "./_core/systemRouter";
 import { protectedProcedure, publicProcedure, router } from "./_core/trpc";
 import { getSmsProviderConfiguration, isE164PhoneNumber, sendTwilioSms, TwilioSmsError } from "./twilioSms";
 
+const calendarParticipantSchema = z.discriminatedUnion("kind", [
+  z.object({
+    kind: z.literal("team"),
+    displayName: z.string().trim().min(1).max(160),
+    email: z.string().trim().email().max(320),
+    userId: z.number().int().positive(),
+  }),
+  z.object({
+    kind: z.literal("contact"),
+    displayName: z.string().trim().min(1).max(160).optional(),
+    email: z.string().trim().email().max(320),
+  }),
+  z.object({
+    kind: z.literal("external"),
+    displayName: z.string().trim().min(1).max(160).optional(),
+    email: z.string().trim().email().max(320),
+  }),
+]);
+
 export const appRouter = router({
     // if you need to use socket.io, read and register route in server/_core/index.ts, all api should start with '/api/' so that the gateway can route correctly
   system: systemRouter,
@@ -100,6 +119,67 @@ export const appRouter = router({
             message: providerError?.message || "The text message could not be sent.",
           });
         }
+      }),
+  }),
+
+  calendar: router({
+    list: protectedProcedure.query(({ ctx }) => db.listCalendarEvents(ctx.user.id)),
+    teamDirectory: protectedProcedure.query(({ ctx }) => db.listWorkspaceTeamMembers(ctx.user.id)),
+    addTeamMember: protectedProcedure
+      .input(z.object({ email: z.string().trim().email().max(320) }))
+      .mutation(async ({ ctx, input }) => {
+        if (ctx.user.role !== "admin") {
+          throw new TRPCError({ code: "FORBIDDEN", message: "Only workspace leaders can add team members." });
+        }
+        const member = await db.addWorkspaceTeamMemberByEmail({
+          ownerUserId: ctx.user.id,
+          email: input.email,
+        });
+        if (!member) {
+          throw new TRPCError({
+            code: "NOT_FOUND",
+            message: "That person needs to sign in to Simply Saturn before they can be added to this team directory.",
+          });
+        }
+        return member;
+      }),
+    participantSuggestions: protectedProcedure
+      .input(z.object({ query: z.string().trim().max(160) }))
+      .query(({ ctx, input }) => db.listCalendarParticipantSuggestions({ ownerUserId: ctx.user.id, query: input.query })),
+    create: protectedProcedure
+      .input(z.object({
+        clientEventId: z.string().trim().min(12).max(96),
+        title: z.string().trim().min(1).max(240),
+        startsAt: z.coerce.date(),
+        endsAt: z.coerce.date(),
+        location: z.string().trim().max(320).optional(),
+        notes: z.string().trim().max(4000).optional(),
+        participants: z.array(calendarParticipantSchema).max(50),
+      }))
+      .mutation(async ({ ctx, input }) => {
+        if (input.endsAt.getTime() <= input.startsAt.getTime()) {
+          throw new TRPCError({ code: "BAD_REQUEST", message: "End time must be later than the start time." });
+        }
+        const teamMembershipChecks = await Promise.all(input.participants
+          .filter((participant) => participant.kind === "team")
+          .map((participant) => db.isWorkspaceTeamMember({ ownerUserId: ctx.user.id, memberUserId: participant.userId })));
+        if (teamMembershipChecks.some((isMember) => !isMember)) {
+          throw new TRPCError({ code: "FORBIDDEN", message: "That team member is not available in this workspace." });
+        }
+        const normalizedEmails = input.participants.map((participant) => participant.email.toLocaleLowerCase());
+        if (new Set(normalizedEmails).size !== normalizedEmails.length) {
+          throw new TRPCError({ code: "BAD_REQUEST", message: "Each participant can only be added once." });
+        }
+        return db.createCalendarEvent({
+          ownerUserId: ctx.user.id,
+          clientEventId: input.clientEventId,
+          title: input.title,
+          startsAt: input.startsAt,
+          endsAt: input.endsAt,
+          location: input.location,
+          notes: input.notes,
+          participants: input.participants,
+        });
       }),
   }),
 

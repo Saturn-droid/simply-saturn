@@ -36,3 +36,12 @@
 - [ ] Replace the trial Auth Token fallback with a restricted Twilio API key after the account supports that credential model.
 - [x] Diagnose and restore the public sales landing pages after the reported regression, preserving the Inbox/Text module and the home page as the marketing design reference.
 - [x] Restore all public sales pages to the dark premium CRM visual direction in the supplied reference image, including the deep navy hero, serif headline, restrained navigation, teal accents, and light wave transition while keeping Inbox/Text unchanged.
+- [x] Make the public Solutions navigation control expose and navigate to its solution pages without breaking the restored sales header.
+- [x] Default a new calendar event’s end time to one hour after the selected start time while preserving manual end-time edits.
+- [x] Add calendar-participant typeahead for matching contacts and team members while retaining free-form valid email entry for external participants.
+- [x] Add a protected workspace team-member directory so calendar participants can be selected from all available team members, not only the current user.
+- [x] Extend calendar participant regression coverage for multiple selectable team members alongside contacts and external email addresses.
+- [x] Implement a workspace-membership creation or synchronization path so real team users are added to the calendar participant directory.
+- [x] Add runtime coverage for multiple active team members, contacts, and external email participants in calendar suggestions and event creation.
+- [x] Add UI-level regression coverage for calendar dialog suggestions and manual external-email entry.
+- [x] Add DOM-rendered calendar dialog interaction tests that verify suggestions render, a team or contact can be selected, and a valid external email can be added manually.

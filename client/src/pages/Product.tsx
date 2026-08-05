@@ -23,7 +23,8 @@ export default function Product() {
           <div className="ssm-card-grid ssm-five-grid">
             {layers.map((layer) => {
               const Icon = layer.icon;
-              return <article className="ssm-card" key={layer.title}><span className="ssm-icon"><Icon size={20} /></span><h3>{layer.title}</h3><p>{layer.copy}</p></article>;
+              const sectionId = layer.title === "Relationship intelligence" ? "relationship-intelligence" : layer.title === "Team execution" ? "team-execution" : undefined;
+              return <article className="ssm-card" key={layer.title} id={sectionId}><span className="ssm-icon"><Icon size={20} /></span><h3>{layer.title}</h3><p>{layer.copy}</p></article>;
             })}
           </div>
         </div>

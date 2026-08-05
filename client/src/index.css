@@ -425,6 +425,14 @@
   .ssm-desktop-nav { display: none; align-items: center; gap: 2rem; margin-left: auto; }
   .ssm-desktop-nav a { display: inline-flex; align-items: center; gap: 0.25rem; color: #bdc9dd; font-size: 0.82rem; font-weight: 500; transition: color 160ms var(--ease-out); }
   .ssm-desktop-nav a:hover, .ssm-desktop-nav a.is-active { color: #ffffff; }
+  .ssm-solutions-wrap { position: relative; }
+  .ssm-solutions-trigger { padding-block: 1.5rem; }
+  .ssm-solutions-panel { position: absolute; z-index: 60; top: calc(100% - 0.55rem); left: -1.1rem; display: grid; width: 20rem; gap: 0.3rem; pointer-events: auto; border: 1px solid rgba(182, 202, 235, 0.18); border-radius: 1rem; background: #11284b; padding: 0.75rem; box-shadow: 0 22px 52px rgba(4, 14, 34, 0.3); }
+  .ssm-solutions-panel > p { padding: 0.35rem 0.6rem 0.45rem; color: #6edfd3; font-size: 0.62rem; font-weight: 700; letter-spacing: 0.12em; text-transform: uppercase; }
+  .ssm-solutions-panel .ssm-solution-link { display: grid; gap: 0.23rem; border-radius: 0.7rem; padding: 0.72rem 0.7rem; color: #edf3ff; transition: background 160ms var(--ease-out); }
+  .ssm-solutions-panel .ssm-solution-link:hover, .ssm-solutions-panel .ssm-solution-link:focus-visible { background: rgba(180, 205, 245, 0.12); color: #ffffff; outline: none; }
+  .ssm-solution-link span { font-size: 0.83rem; font-weight: 700; }
+  .ssm-solution-link small { color: #aebfda; font-size: 0.69rem; line-height: 1.35; }
   .ssm-desktop-actions { display: none; margin-left: 0.4rem; }
   .ssm-signin-pill { display: inline-flex; min-height: 2.6rem; align-items: center; border: 1px solid rgba(174, 197, 232, 0.27); border-radius: 0.9rem; padding: 0 1.35rem; color: #eaf0fb; font-size: 0.81rem; font-weight: 600; transition: background 160ms var(--ease-out), transform 160ms var(--ease-out); }
   .ssm-signin-pill:hover { background: rgba(255,255,255,0.07); }
@@ -433,6 +441,9 @@
   .ssm-mobile-nav { border-top: 1px solid rgba(183, 203, 236, 0.1); background: #132a4e; }
   .ssm-mobile-nav .ssm-container { display: grid; padding-block: 0.8rem 1.1rem; }
   .ssm-mobile-nav a { display: flex; align-items: center; justify-content: space-between; border-radius: 0.65rem; padding: 0.8rem 0.1rem; color: #d8e2f2; font-size: 0.95rem; font-weight: 600; }
+  .ssm-mobile-solutions { border-bottom: 1px solid rgba(183, 203, 236, 0.12); padding-bottom: 0.55rem; }
+  .ssm-mobile-solution-links { display: grid; margin-left: 0.8rem; border-left: 1px solid rgba(183, 203, 236, 0.18); padding-left: 0.75rem; }
+  .ssm-mobile-solution-links a { padding-block: 0.55rem; color: #afc1dc; font-size: 0.82rem; }
   .ssm-mobile-signin { margin-top: 0.5rem; border: 1px solid rgba(174, 197, 232, 0.28); padding-inline: 0.85rem !important; }
 
   .ssm-hero, .ssm-page-hero { position: relative; overflow: hidden; background: radial-gradient(circle at 86% 77%, rgba(119, 149, 224, 0.78) 0%, rgba(80, 106, 170, 0.42) 17%, transparent 40%), radial-gradient(circle at 93% 60%, rgba(172, 194, 241, 0.35), transparent 25%), linear-gradient(118deg, #07172e 0%, #10284e 55%, #284b80 100%); color: #f3f6fd; }
