@@ -52,3 +52,19 @@
 - [x] Preserve the current event duration when a start time changes in the edit-event dialog, including after manual end-time edits.
 - [x] Add regression coverage for one-hour defaults and user-adjusted durations when calendar start times change.
 - [x] Add a scoped calendar edit-event dialog and update procedure so existing events can use the same duration-preserving timing behavior.
+- [x] Redesign the contacts list view with contact identity, contact info, types, deal count, per-channel last-contact activity, optional status, and quick-contact controls.
+- [x] Add optional ISA contact statuses—Dead, Expired, DNC, Prospect, Active, Forever Client, and Vendor—with clear removal support.
+- [x] Remove the relationship filter from the contacts list while preserving useful contact filtering and search.
+- [x] Connect contact-detail quick actions to create or continue text threads, begin new email composition, and begin call actions for the selected contact.
+- [x] Add protected contact activity and status procedures plus regression coverage for list data, status removal, filter changes, and communication routing.
+- [x] Update contact last-contact timestamps from completed contact-specific SMS sends and completed email or call handoffs, not solely from manual detail-page logging.
+- [x] Add regression coverage proving contact list last-contact timestamps update through the real text, email, and call communication flows.
+- [x] Add an integration test that completes contact communication flows and verifies the Contacts list renders the updated per-channel last-contact timestamps.
+- [x] Add a contact-specific SMS-to-Contacts-list integration test for the updated text last-contact value.
+- [x] Strengthen contact activity DOM coverage to verify independent text, call, and email last-contact cells instead of a generic recent-time value.
+- [x] Require an explicit email or call handoff-completion confirmation before updating a contact’s last-contact activity.
+- [x] Add runtime or DOM coverage verifying completed email and call handoffs update the corresponding contact activity summaries.
+- [x] Add a runtime contract test proving completed email and call activity updates return the selected contact’s lastEmailAt and lastCallAt summaries.
+- [x] Add an Inbox handoff integration test that connects explicit email and call completion acknowledgements to the verified contact summary update result.
+- [x] Surface the confirmed email or call last-contact summary in Inbox after the completion mutation succeeds.
+- [x] Add DOM integration coverage verifying explicit email and call completion renders the returned contact-summary update.

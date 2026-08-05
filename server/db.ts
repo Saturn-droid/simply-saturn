@@ -4,10 +4,13 @@ import {
   CalendarContact,
   CalendarEvent,
   CalendarEventParticipant,
+  CrmContact,
   InsertUser,
   calendarContacts,
   calendarEventParticipants,
   calendarEvents,
+  contactActivities,
+  crmContacts,
   workspaceTeamMembers,
   SmsConversation,
   SmsMessage,
@@ -101,6 +104,150 @@ export async function getUserByOpenId(openId: string) {
   const result = await db.select().from(users).where(eq(users.openId, openId)).limit(1);
 
   return result.length > 0 ? result[0] : undefined;
+}
+
+export const contactStatusValues = ["dead", "expired", "dnc", "prospect", "active", "forever_client", "vendor"] as const;
+export type ContactStatusValue = (typeof contactStatusValues)[number];
+export const contactTypeValues = ["buyer", "seller", "investor", "vendor", "agent", "tenant", "landlord", "other"] as const;
+export type ContactTypeValue = (typeof contactTypeValues)[number];
+export type ContactActivityChannel = "text" | "call" | "email";
+
+function parseContactTypes(typesJson: string): ContactTypeValue[] {
+  try {
+    const values = JSON.parse(typesJson);
+    if (!Array.isArray(values)) return [];
+    return values.filter((value): value is ContactTypeValue => typeof value === "string" && contactTypeValues.includes(value as ContactTypeValue));
+  } catch {
+    return [];
+  }
+}
+
+function normalizeContact(contact: CrmContact) {
+  return { ...contact, types: parseContactTypes(contact.typesJson) };
+}
+
+export async function listCrmContacts(input: { ownerUserId: number; query?: string; status?: ContactStatusValue }) {
+  const db = await getDb();
+  if (!db) return [];
+
+  const rows = await db
+    .select()
+    .from(crmContacts)
+    .where(eq(crmContacts.ownerUserId, input.ownerUserId))
+    .orderBy(asc(crmContacts.displayName));
+  const normalized = rows.map(normalizeContact);
+  const query = input.query?.trim().toLocaleLowerCase();
+
+  return normalized.filter((contact) => {
+    if (input.status && contact.status !== input.status) return false;
+    if (!query) return true;
+    return [contact.displayName, contact.email, contact.phone, ...contact.types]
+      .filter(Boolean)
+      .some((value) => String(value).toLocaleLowerCase().includes(query));
+  });
+}
+
+export async function getCrmContact(input: { ownerUserId: number; contactId: number }) {
+  const db = await getDb();
+  if (!db) return undefined;
+
+  const rows = await db
+    .select()
+    .from(crmContacts)
+    .where(and(eq(crmContacts.ownerUserId, input.ownerUserId), eq(crmContacts.id, input.contactId)))
+    .limit(1);
+  return rows[0] ? normalizeContact(rows[0]) : undefined;
+}
+
+export async function createCrmContact(input: {
+  ownerUserId: number;
+  displayName: string;
+  email?: string;
+  phone?: string;
+  types: ContactTypeValue[];
+  status?: ContactStatusValue | null;
+  dealCount?: number;
+}) {
+  const db = await getDb();
+  if (!db) throw new Error("Database is not available for contacts.");
+
+  const [created] = await db.insert(crmContacts).values({
+    ownerUserId: input.ownerUserId,
+    displayName: input.displayName,
+    email: input.email || null,
+    phone: input.phone || null,
+    typesJson: JSON.stringify(Array.from(new Set(input.types))),
+    status: input.status ?? null,
+    dealCount: input.dealCount ?? 0,
+  }).$returningId();
+  const contact = await getCrmContact({ ownerUserId: input.ownerUserId, contactId: created.id });
+  if (!contact) throw new Error("Contact was created but could not be loaded.");
+  return contact;
+}
+
+export async function updateCrmContact(input: {
+  ownerUserId: number;
+  contactId: number;
+  displayName: string;
+  email?: string;
+  phone?: string;
+  types: ContactTypeValue[];
+  status?: ContactStatusValue | null;
+  dealCount: number;
+}) {
+  const db = await getDb();
+  if (!db) throw new Error("Database is not available for contacts.");
+
+  await db
+    .update(crmContacts)
+    .set({
+      displayName: input.displayName,
+      email: input.email || null,
+      phone: input.phone || null,
+      typesJson: JSON.stringify(Array.from(new Set(input.types))),
+      status: input.status ?? null,
+      dealCount: input.dealCount,
+    })
+    .where(and(eq(crmContacts.ownerUserId, input.ownerUserId), eq(crmContacts.id, input.contactId)));
+  return getCrmContact({ ownerUserId: input.ownerUserId, contactId: input.contactId });
+}
+
+export async function setCrmContactStatus(input: { ownerUserId: number; contactId: number; status: ContactStatusValue | null }) {
+  const db = await getDb();
+  if (!db) throw new Error("Database is not available for contacts.");
+
+  await db
+    .update(crmContacts)
+    .set({ status: input.status })
+    .where(and(eq(crmContacts.ownerUserId, input.ownerUserId), eq(crmContacts.id, input.contactId)));
+  return getCrmContact({ ownerUserId: input.ownerUserId, contactId: input.contactId });
+}
+
+export async function recordCrmContactActivity(input: {
+  ownerUserId: number;
+  contactId: number;
+  channel: ContactActivityChannel;
+  occurredAt?: Date;
+}) {
+  const db = await getDb();
+  if (!db) throw new Error("Database is not available for contacts.");
+  const contact = await getCrmContact({ ownerUserId: input.ownerUserId, contactId: input.contactId });
+  if (!contact) return undefined;
+
+  const occurredAt = input.occurredAt ?? new Date();
+  await db.insert(contactActivities).values({
+    ownerUserId: input.ownerUserId,
+    contactId: input.contactId,
+    channel: input.channel,
+    occurredAt,
+  });
+
+  const summaryField = input.channel === "text" ? { lastTextAt: occurredAt } : input.channel === "call" ? { lastCallAt: occurredAt } : { lastEmailAt: occurredAt };
+  await db
+    .update(crmContacts)
+    .set(summaryField)
+    .where(and(eq(crmContacts.ownerUserId, input.ownerUserId), eq(crmContacts.id, input.contactId)));
+  return getCrmContact({ ownerUserId: input.ownerUserId, contactId: input.contactId });
 }
 
 export async function listSmsConversations(ownerUserId: number): Promise<SmsConversation[]> {

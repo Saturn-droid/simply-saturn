@@ -35,6 +35,17 @@ const calendarEventPayloadSchema = z.object({
   participants: z.array(calendarParticipantSchema).max(50),
 });
 
+const contactTypeSchema = z.enum(["buyer", "seller", "investor", "vendor", "agent", "tenant", "landlord", "other"]);
+const contactStatusSchema = z.enum(["dead", "expired", "dnc", "prospect", "active", "forever_client", "vendor"]);
+const contactPayloadSchema = z.object({
+  displayName: z.string().trim().min(1).max(160),
+  email: z.string().trim().email().max(320).optional().or(z.literal("")),
+  phone: z.string().trim().max(32).optional().or(z.literal("")),
+  types: z.array(contactTypeSchema).max(8),
+  status: contactStatusSchema.nullable().optional(),
+  dealCount: z.number().int().min(0).max(100000),
+});
+
 async function validateCalendarEventPayload(ownerUserId: number, input: z.infer<typeof calendarEventPayloadSchema>) {
   if (input.endsAt.getTime() <= input.startsAt.getTime()) {
     throw new TRPCError({ code: "BAD_REQUEST", message: "End time must be later than the start time." });
@@ -84,6 +95,7 @@ export const appRouter = router({
         z.object({
           to: z.string().trim().min(8).max(16),
           contactName: z.string().trim().max(160).optional(),
+          contactId: z.number().int().positive().optional(),
           body: z.string().trim().min(1).max(1600),
           clientMessageId: z.string().trim().min(12).max(96),
           confirmLiveSend: z.literal(true),
@@ -115,6 +127,13 @@ export const appRouter = router({
           });
         }
 
+        if (input.contactId) {
+          const contact = await db.getCrmContact({ ownerUserId: ctx.user.id, contactId: input.contactId });
+          if (!contact) {
+            throw new TRPCError({ code: "NOT_FOUND", message: "That contact is unavailable for this text conversation." });
+          }
+        }
+
         const conversation = await db.findOrCreateSmsConversation({
           ownerUserId: ctx.user.id,
           contactPhone: input.to,
@@ -137,6 +156,9 @@ export const appRouter = router({
             errorMessage: providerResult.errorMessage,
           });
           await db.touchSmsConversation({ conversationId: conversation.id, body: input.body });
+          if (input.contactId) {
+            await db.recordCrmContactActivity({ ownerUserId: ctx.user.id, contactId: input.contactId, channel: "text" });
+          }
           return { message: updated ?? message, idempotent: false };
         } catch (error) {
           const providerError = error instanceof TwilioSmsError ? error : null;
@@ -151,6 +173,60 @@ export const appRouter = router({
             message: providerError?.message || "The text message could not be sent.",
           });
         }
+      }),
+  }),
+
+  contacts: router({
+    list: protectedProcedure
+      .input(z.object({ query: z.string().trim().max(160).optional(), status: contactStatusSchema.optional() }).optional())
+      .query(({ ctx, input }) => db.listCrmContacts({ ownerUserId: ctx.user.id, query: input?.query, status: input?.status })),
+    get: protectedProcedure
+      .input(z.object({ contactId: z.number().int().positive() }))
+      .query(async ({ ctx, input }) => {
+        const contact = await db.getCrmContact({ ownerUserId: ctx.user.id, contactId: input.contactId });
+        if (!contact) throw new TRPCError({ code: "NOT_FOUND", message: "That contact is unavailable." });
+        return contact;
+      }),
+    create: protectedProcedure
+      .input(contactPayloadSchema)
+      .mutation(({ ctx, input }) => db.createCrmContact({
+        ownerUserId: ctx.user.id,
+        displayName: input.displayName,
+        email: input.email || undefined,
+        phone: input.phone || undefined,
+        types: input.types,
+        status: input.status ?? null,
+        dealCount: input.dealCount,
+      })),
+    update: protectedProcedure
+      .input(contactPayloadSchema.extend({ contactId: z.number().int().positive() }))
+      .mutation(async ({ ctx, input }) => {
+        const contact = await db.updateCrmContact({
+          ownerUserId: ctx.user.id,
+          contactId: input.contactId,
+          displayName: input.displayName,
+          email: input.email || undefined,
+          phone: input.phone || undefined,
+          types: input.types,
+          status: input.status ?? null,
+          dealCount: input.dealCount,
+        });
+        if (!contact) throw new TRPCError({ code: "NOT_FOUND", message: "That contact is unavailable." });
+        return contact;
+      }),
+    setStatus: protectedProcedure
+      .input(z.object({ contactId: z.number().int().positive(), status: contactStatusSchema.nullable() }))
+      .mutation(async ({ ctx, input }) => {
+        const contact = await db.setCrmContactStatus({ ownerUserId: ctx.user.id, contactId: input.contactId, status: input.status });
+        if (!contact) throw new TRPCError({ code: "NOT_FOUND", message: "That contact is unavailable." });
+        return contact;
+      }),
+    recordActivity: protectedProcedure
+      .input(z.object({ contactId: z.number().int().positive(), channel: z.enum(["text", "call", "email"]) }))
+      .mutation(async ({ ctx, input }) => {
+        const contact = await db.recordCrmContactActivity({ ownerUserId: ctx.user.id, contactId: input.contactId, channel: input.channel });
+        if (!contact) throw new TRPCError({ code: "NOT_FOUND", message: "That contact is unavailable." });
+        return contact;
       }),
   }),
 

@@ -167,3 +167,55 @@ export type CalendarEvent = typeof calendarEvents.$inferSelect;
 export type CalendarContact = typeof calendarContacts.$inferSelect;
 export type CalendarEventParticipant = typeof calendarEventParticipants.$inferSelect;
 export type WorkspaceTeamMember = typeof workspaceTeamMembers.$inferSelect;
+
+/**
+ * Operational contact records are owner-scoped. Contact types are persisted as
+ * a compact JSON array so a contact can carry several roles without requiring
+ * a relationship filter or a separate relationship record.
+ */
+export const crmContacts = mysqlTable(
+  "crmContacts",
+  {
+    id: int("id").autoincrement().primaryKey(),
+    ownerUserId: int("ownerUserId").notNull().references(() => users.id),
+    displayName: varchar("displayName", { length: 160 }).notNull(),
+    email: varchar("email", { length: 320 }),
+    phone: varchar("phone", { length: 32 }),
+    typesJson: text("typesJson").notNull(),
+    status: mysqlEnum("status", ["dead", "expired", "dnc", "prospect", "active", "forever_client", "vendor"]),
+    dealCount: int("dealCount").default(0).notNull(),
+    lastTextAt: timestamp("lastTextAt"),
+    lastCallAt: timestamp("lastCallAt"),
+    lastEmailAt: timestamp("lastEmailAt"),
+    createdAt: timestamp("createdAt").defaultNow().notNull(),
+    updatedAt: timestamp("updatedAt").defaultNow().onUpdateNow().notNull(),
+  },
+  (table) => [
+    index("crm_contacts_owner_updated_idx").on(table.ownerUserId, table.updatedAt),
+    index("crm_contacts_owner_status_idx").on(table.ownerUserId, table.status),
+    index("crm_contacts_owner_name_idx").on(table.ownerUserId, table.displayName),
+  ],
+);
+
+/**
+ * Communication activities support per-channel last-contact values in the
+ * contacts list. The summary timestamps above are updated alongside this audit
+ * table to keep the list view efficient.
+ */
+export const contactActivities = mysqlTable(
+  "contactActivities",
+  {
+    id: int("id").autoincrement().primaryKey(),
+    ownerUserId: int("ownerUserId").notNull().references(() => users.id),
+    contactId: int("contactId").notNull().references(() => crmContacts.id),
+    channel: mysqlEnum("channel", ["text", "call", "email"]).notNull(),
+    occurredAt: timestamp("occurredAt").defaultNow().notNull(),
+    createdAt: timestamp("createdAt").defaultNow().notNull(),
+  },
+  (table) => [
+    index("contact_activities_owner_contact_channel_idx").on(table.ownerUserId, table.contactId, table.channel, table.occurredAt),
+  ],
+);
+
+export type CrmContact = typeof crmContacts.$inferSelect;
+export type ContactActivity = typeof contactActivities.$inferSelect;

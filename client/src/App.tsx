@@ -3,6 +3,8 @@ import { TooltipProvider } from "@/components/ui/tooltip";
 import About from "@/pages/About";
 import Calendar from "@/pages/Calendar";
 import Contact from "@/pages/Contact";
+import ContactDetail from "@/pages/ContactDetail";
+import Contacts from "@/pages/Contacts";
 import Dashboard from "@/pages/Dashboard";
 import Features from "@/pages/Features";
 import ForgotPassword from "@/pages/ForgotPassword";
@@ -34,6 +36,8 @@ function Router() {
       <Route path="/forgot-password" component={ForgotPassword} />
       <Route path="/app/inbox" component={Inbox} />
       <Route path="/app/calendar" component={Calendar} />
+      <Route path="/app/contacts/:contactId" component={ContactDetail} />
+      <Route path="/app/contacts" component={Contacts} />
       <Route path="/app" component={Dashboard} />
       <Route path="/privacy" component={LegalPlaceholder} />
       <Route path="/terms" component={LegalPlaceholder} />

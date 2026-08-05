@@ -5,10 +5,10 @@ import { Textarea } from "@/components/ui/textarea";
 import { useAuth } from "@/_core/hooks/useAuth";
 import { trpc } from "@/lib/trpc";
 import { cn } from "@/lib/utils";
-import { ArrowLeft, CheckCircle2, ChevronRight, CircleAlert, Clock3, LockKeyhole, MessageSquareText, Send, Settings2, ShieldCheck, Smartphone, UserRound } from "lucide-react";
-import { useState } from "react";
+import { ArrowLeft, CheckCircle2, ChevronRight, CircleAlert, Clock3, LockKeyhole, Mail, MessageSquareText, Send, Settings2, ShieldCheck, Smartphone, UserRound } from "lucide-react";
+import React, { useEffect, useMemo, useState } from "react";
 import { toast } from "sonner";
-import { useLocation } from "wouter";
+import { useLocation, useSearch } from "wouter";
 
 const supportAcknowledgement = "Hi, this is Support. We received your message and will assist shortly. Reply with details. Test message from Twilio.";
 const e164Pattern = /^\+[1-9]\d{7,14}$/;
@@ -18,14 +18,33 @@ function deliveryLabel(status: string) {
 }
 
 export default function Inbox() {
-  const [, setLocation] = useLocation();
+  const [location, setLocation] = useLocation();
+  const search = useSearch();
   const { isAuthenticated, loading } = useAuth();
   const utils = trpc.useUtils();
   const [selectedConversationId, setSelectedConversationId] = useState<number | null>(null);
   const [recipient, setRecipient] = useState("");
   const [contactName, setContactName] = useState("");
   const [body, setBody] = useState("");
+  const [emailSubject, setEmailSubject] = useState("");
+  const [emailBody, setEmailBody] = useState("");
+  const [emailCompletionAcknowledged, setEmailCompletionAcknowledged] = useState(false);
+  const [callCompletionAcknowledged, setCallCompletionAcknowledged] = useState(false);
+  const [completedHandoff, setCompletedHandoff] = useState<{ channel: "email" | "call"; timestamp: Date | string } | null>(null);
   const [confirmationOpen, setConfirmationOpen] = useState(false);
+
+  const contactHandoff = useMemo(() => {
+    const params = new URLSearchParams(search);
+    const channel = params.get("channel");
+    if (channel !== "text" && channel !== "email" && channel !== "call") return null;
+    return {
+      channel,
+      contactId: params.get("contactId") || "",
+      name: params.get("name") || "",
+      phone: params.get("phone") || "",
+      email: params.get("email") || "",
+    };
+  }, [search]);
 
   const configurationQuery = trpc.sms.configuration.useQuery(undefined, {
     enabled: isAuthenticated,
@@ -55,6 +74,32 @@ export default function Inbox() {
   const conversations = conversationsQuery.data ?? [];
   const canSend = Boolean(isAuthenticated && configuration?.configured && configuration?.dispatchEnabled && recipient.trim() && body.trim() && !sendMutation.isPending);
   const smsDispatchReady = Boolean(configuration?.configured && configuration?.dispatchEnabled);
+  const contactActivityMutation = trpc.contacts.recordActivity.useMutation({
+    onSuccess: (contact, variables) => {
+      if (variables.channel === "email" && contact.lastEmailAt) {
+        setCompletedHandoff({ channel: "email", timestamp: contact.lastEmailAt });
+      }
+      if (variables.channel === "call" && contact.lastCallAt) {
+        setCompletedHandoff({ channel: "call", timestamp: contact.lastCallAt });
+      }
+      toast.success("Contact activity updated.");
+    },
+    onError: (error) => toast.error(error.message),
+  });
+  const routedContactId = contactHandoff?.contactId && Number.isInteger(Number(contactHandoff.contactId)) ? Number(contactHandoff.contactId) : undefined;
+
+  useEffect(() => {
+    if (!contactHandoff) return;
+    setContactName(contactHandoff.name);
+    setRecipient(contactHandoff.phone);
+    if (contactHandoff.channel === "text" && contactHandoff.phone) {
+      const existing = conversations.find((conversation) => conversation.contactPhone === contactHandoff.phone);
+      setSelectedConversationId(existing?.id ?? null);
+    }
+    if (contactHandoff.channel === "email") {
+      setEmailSubject((current) => current || `Following up with ${contactHandoff.name || "you"}`);
+    }
+  }, [contactHandoff, conversations]);
 
   const submitMessage = (event: React.FormEvent<HTMLFormElement>) => {
     event.preventDefault();
@@ -90,6 +135,7 @@ export default function Inbox() {
     sendMutation.mutate({
       to: recipient.trim(),
       contactName: contactName.trim() || undefined,
+      contactId: contactHandoff?.channel === "text" ? routedContactId : undefined,
       body: body.trim(),
       clientMessageId: typeof crypto !== "undefined" && crypto.randomUUID ? crypto.randomUUID() : `${Date.now()}-${Math.random()}`,
       confirmLiveSend: true,
@@ -130,14 +176,14 @@ export default function Inbox() {
         </section>
 
         <aside className="rounded-[1.35rem] border border-[#171b39]/9 bg-white p-5 shadow-[0_16px_45px_rgba(26,30,59,.06)]">
-          <div className="flex items-center justify-between"><div><p className="font-sans text-[0.62rem] font-extrabold uppercase tracking-[.13em] text-[#8a6c45]">New text</p><h2 className="mt-1 text-2xl text-[#282d50]">Compose with intent.</h2></div><span className="grid h-10 w-10 place-items-center rounded-xl bg-[#ece8df] text-[#5c4e7a]"><Send size={17} /></span></div>
-          <form className="mt-6 space-y-4" onSubmit={submitMessage}>
+          <div className="flex items-center justify-between"><div><p className="font-sans text-[0.62rem] font-extrabold uppercase tracking-[.13em] text-[#8a6c45]">{contactHandoff?.channel === "email" ? "New email" : contactHandoff?.channel === "call" ? "Call contact" : "New text"}</p><h2 className="mt-1 text-2xl text-[#282d50]">{contactHandoff?.name ? contactHandoff.name : "Compose with intent."}</h2></div><span className="grid h-10 w-10 place-items-center rounded-xl bg-[#ece8df] text-[#5c4e7a]">{contactHandoff?.channel === "email" ? <Mail size={17} /> : contactHandoff?.channel === "call" ? <Smartphone size={17} /> : <Send size={17} />}</span></div>
+          {contactHandoff?.channel === "email" ? <div className="mt-6 space-y-4"><div className="rounded-xl border border-[#171b39]/9 bg-[#fbfaf6] p-3"><p className="text-[0.62rem] font-extrabold uppercase tracking-[.12em] text-[#8a6c45]">Recipient</p><p className="mt-1 break-all text-sm font-bold text-[#363c5d]">{contactHandoff.email || "No email address available"}</p></div><label className="block"><span className="text-xs font-extrabold text-[#4c5270]">Subject</span><input value={emailSubject} onChange={(event) => setEmailSubject(event.target.value)} className="mt-1.5 w-full rounded-xl border border-[#171b39]/10 bg-[#fbfaf6] px-3 py-2.5 text-sm text-[#303657] outline-none transition focus:border-[#6a5889] focus:ring-2 focus:ring-[#6a5889]/12" placeholder="Subject" /></label><label className="block"><span className="text-xs font-extrabold text-[#4c5270]">Message</span><Textarea value={emailBody} onChange={(event) => setEmailBody(event.target.value)} className="mt-1.5 min-h-36 resize-y rounded-xl border-[#171b39]/10 bg-[#fbfaf6] text-sm leading-6 text-[#303657] focus-visible:border-[#6a5889] focus-visible:ring-[#6a5889]/12" placeholder="Write a clear, helpful email…" /></label>{contactHandoff.email ? <><a href={`mailto:${contactHandoff.email}?subject=${encodeURIComponent(emailSubject)}&body=${encodeURIComponent(emailBody)}`} className="ss-button-primary w-full justify-center"><Mail size={16} />Open email composer</a><div className="rounded-xl border border-[#171b39]/8 bg-[#fbfaf6] p-3"><label className="flex cursor-pointer items-start gap-2 text-xs leading-5 text-[#646b82]"><input type="checkbox" checked={emailCompletionAcknowledged} onChange={(event) => setEmailCompletionAcknowledged(event.target.checked)} className="mt-0.5" />I completed the email handoff.</label><button type="button" disabled={!emailCompletionAcknowledged || !routedContactId || contactActivityMutation.isPending} onClick={() => { if (routedContactId) contactActivityMutation.mutate({ contactId: routedContactId, channel: "email" }); }} className="mt-3 text-xs font-extrabold text-[#554476] disabled:cursor-not-allowed disabled:opacity-45">Mark email handoff complete</button>{completedHandoff?.channel === "email" ? <p role="status" className="mt-2 text-xs font-bold text-[#557450]">Last email contact updated · {new Date(completedHandoff.timestamp).toLocaleString()}</p> : null}</div></> : <p className="rounded-xl border border-[#d9c59f]/35 bg-[#fbf5e9] p-3 text-xs leading-5 text-[#836f50]">Save an email address on this contact to compose an email from the workspace.</p>}</div> : contactHandoff?.channel === "call" ? <div className="mt-6 space-y-4"><div className="rounded-xl border border-[#171b39]/9 bg-[#fbfaf6] p-4"><p className="text-[0.62rem] font-extrabold uppercase tracking-[.12em] text-[#8a6c45]">Calling</p><p className="mt-1 text-lg font-bold text-[#363c5d]">{contactHandoff.name || "Contact"}</p><p className="mt-1 text-sm text-[#73798f]">{contactHandoff.phone || "No phone number saved"}</p></div>{contactHandoff.phone ? <><a href={`tel:${contactHandoff.phone}`} className="ss-button-primary w-full justify-center"><Smartphone size={16} />Open phone dialer</a><div className="rounded-xl border border-[#171b39]/8 bg-[#fbfaf6] p-3"><label className="flex cursor-pointer items-start gap-2 text-xs leading-5 text-[#646b82]"><input type="checkbox" checked={callCompletionAcknowledged} onChange={(event) => setCallCompletionAcknowledged(event.target.checked)} className="mt-0.5" />I completed the call handoff.</label><button type="button" disabled={!callCompletionAcknowledged || !routedContactId || contactActivityMutation.isPending} onClick={() => { if (routedContactId) contactActivityMutation.mutate({ contactId: routedContactId, channel: "call" }); }} className="mt-3 text-xs font-extrabold text-[#554476] disabled:cursor-not-allowed disabled:opacity-45">Mark call handoff complete</button>{completedHandoff?.channel === "call" ? <p role="status" className="mt-2 text-xs font-bold text-[#557450]">Last call contact updated · {new Date(completedHandoff.timestamp).toLocaleString()}</p> : null}</div></> : <p className="rounded-xl border border-[#d9c59f]/35 bg-[#fbf5e9] p-3 text-xs leading-5 text-[#836f50]">Save a phone number on this contact to begin a call from the workspace.</p>}<button type="button" onClick={() => setLocation("/app/inbox")} className="ss-button-secondary w-full justify-center">Return to text inbox</button></div> : <form className="mt-6 space-y-4" onSubmit={submitMessage}>
             <label className="block"><span className="text-xs font-extrabold text-[#4c5270]">Recipient name <span className="font-medium text-[#8c90a1]">(optional)</span></span><input value={contactName} onChange={(event) => setContactName(event.target.value)} maxLength={160} className="mt-1.5 w-full rounded-xl border border-[#171b39]/10 bg-[#fbfaf6] px-3 py-2.5 text-sm text-[#303657] outline-none transition focus:border-[#6a5889] focus:ring-2 focus:ring-[#6a5889]/12" placeholder="Contact name" /></label>
             <label className="block"><span className="text-xs font-extrabold text-[#4c5270]">Recipient number</span><input value={recipient} onChange={(event) => setRecipient(event.target.value)} inputMode="tel" className="mt-1.5 w-full rounded-xl border border-[#171b39]/10 bg-[#fbfaf6] px-3 py-2.5 text-sm text-[#303657] outline-none transition focus:border-[#6a5889] focus:ring-2 focus:ring-[#6a5889]/12" placeholder="+15551234567" aria-describedby="recipient-help" required /><span id="recipient-help" className="mt-1.5 block text-[0.68rem] leading-4 text-[#7d8194]">Use E.164 format. Custom delivery is currently deferred under the account restriction.</span></label>
             <label className="block"><span className="flex items-center justify-between text-xs font-extrabold text-[#4c5270]">Message <span className="font-medium text-[#8c90a1]">{body.length}/1600</span></span><Textarea value={body} onChange={(event) => setBody(event.target.value)} maxLength={1600} className="mt-1.5 min-h-36 resize-y rounded-xl border-[#171b39]/10 bg-[#fbfaf6] text-sm leading-6 text-[#303657] focus-visible:border-[#6a5889] focus-visible:ring-[#6a5889]/12" placeholder="Write a clear, helpful text…" required /></label>
             <button type="button" onClick={() => setBody(supportAcknowledgement)} className="inline-flex items-center gap-2 text-xs font-extrabold text-[#66547f] transition-colors hover:text-[#433354]"><Settings2 size={14} />Use support acknowledgement template</button>
             <button type="submit" disabled={!canSend} className="ss-button-primary w-full justify-center disabled:cursor-not-allowed disabled:opacity-50">{sendMutation.isPending ? "Submitting text…" : configuration?.configured && !configuration.dispatchEnabled ? "SMS delivery deferred" : "Review & send text"}<Send size={16} /></button>
-          </form>
+          </form>}
           <Dialog open={confirmationOpen} onOpenChange={setConfirmationOpen}>
             <DialogContent className="border-[#171b39]/10 bg-[#fffdf9] text-[#303657] shadow-[0_24px_80px_rgba(22,26,53,.2)]">
               <DialogHeader>
