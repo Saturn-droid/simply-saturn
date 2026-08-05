@@ -83,6 +83,13 @@ export const appRouter = router({
           });
         }
 
+        if (!configuration.dispatchEnabled) {
+          throw new TRPCError({
+            code: "PRECONDITION_FAILED",
+            message: configuration.restrictionReason || "Custom SMS delivery is temporarily deferred.",
+          });
+        }
+
         const conversation = await db.findOrCreateSmsConversation({
           ownerUserId: ctx.user.id,
           contactPhone: input.to,

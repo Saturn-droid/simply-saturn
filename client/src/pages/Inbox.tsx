@@ -53,7 +53,8 @@ export default function Inbox() {
 
   const configuration = configurationQuery.data;
   const conversations = conversationsQuery.data ?? [];
-  const canSend = Boolean(isAuthenticated && configuration?.configured && recipient.trim() && body.trim() && !sendMutation.isPending);
+  const canSend = Boolean(isAuthenticated && configuration?.configured && configuration?.dispatchEnabled && recipient.trim() && body.trim() && !sendMutation.isPending);
+  const smsDispatchReady = Boolean(configuration?.configured && configuration?.dispatchEnabled);
 
   const submitMessage = (event: React.FormEvent<HTMLFormElement>) => {
     event.preventDefault();
@@ -67,6 +68,10 @@ export default function Inbox() {
       toast.error("Secure SMS configuration is required before a message can be sent.");
       return;
     }
+    if (!configuration.dispatchEnabled) {
+      toast.error(configuration.restrictionReason || "Custom SMS delivery is temporarily deferred.");
+      return;
+    }
     if (!e164Pattern.test(recipient.trim())) {
       toast.error("Use an E.164 recipient number, for example +15551234567.");
       return;
@@ -75,7 +80,7 @@ export default function Inbox() {
   };
 
   const confirmMessage = () => {
-    if (!isAuthenticated || !configuration?.configured || !e164Pattern.test(recipient.trim()) || !body.trim()) {
+    if (!isAuthenticated || !configuration?.configured || !configuration.dispatchEnabled || !e164Pattern.test(recipient.trim()) || !body.trim()) {
       setConfirmationOpen(false);
       toast.error("Review the recipient and message before submitting the text.");
       return;
@@ -99,9 +104,9 @@ export default function Inbox() {
           <button type="button" onClick={() => setLocation("/app")} className="inline-flex items-center gap-2 text-xs font-extrabold text-[#6a5889] transition-colors hover:text-[#40345e]"><ArrowLeft size={15} />Workspace dashboard</button>
           <p className="mt-4 font-sans text-xs font-extrabold uppercase tracking-[.14em] text-[#8a6c45]">Inbox & text</p>
           <h1 className="mt-2 text-4xl leading-tight text-[#202547] sm:text-5xl">Keep conversations close to the work.</h1>
-          <p className="mt-2 max-w-2xl text-sm leading-6 text-[#697087]">Compose a verified text from Simply Saturn. Messages are submitted only after a direct confirmation and are recorded in the workspace timeline.</p>
+          <p className="mt-2 max-w-2xl text-sm leading-6 text-[#697087]">Draft a verified text from Simply Saturn. Custom delivery remains deferred while the current Twilio free-trial restriction is in effect.</p>
         </div>
-        <div className={cn("inline-flex items-center gap-2 self-start rounded-full border px-3 py-2 text-xs font-bold sm:self-auto", configuration?.configured ? "border-[#6f9568]/25 bg-[#edf4eb] text-[#557450]" : "border-[#b98a4f]/25 bg-[#fbf4e9] text-[#86602d]")}>{configuration?.configured ? <CheckCircle2 size={15} /> : <LockKeyhole size={15} />}{configuration?.configured ? `Configured · ${configuration.senderLabel}` : "Server-side configuration required"}</div>
+        <div className={cn("inline-flex items-center gap-2 self-start rounded-full border px-3 py-2 text-xs font-bold sm:self-auto", smsDispatchReady ? "border-[#6f9568]/25 bg-[#edf4eb] text-[#557450]" : "border-[#b98a4f]/25 bg-[#fbf4e9] text-[#86602d]")}>{smsDispatchReady ? <CheckCircle2 size={15} /> : <LockKeyhole size={15} />}{smsDispatchReady ? `Configured · ${configuration?.senderLabel}` : configuration?.configured ? "Custom delivery deferred" : "Server-side configuration required"}</div>
       </section>
 
       <div className="mt-7 grid min-h-[39rem] gap-4 xl:grid-cols-[20rem_minmax(0,1fr)_21rem]">
@@ -128,10 +133,10 @@ export default function Inbox() {
           <div className="flex items-center justify-between"><div><p className="font-sans text-[0.62rem] font-extrabold uppercase tracking-[.13em] text-[#8a6c45]">New text</p><h2 className="mt-1 text-2xl text-[#282d50]">Compose with intent.</h2></div><span className="grid h-10 w-10 place-items-center rounded-xl bg-[#ece8df] text-[#5c4e7a]"><Send size={17} /></span></div>
           <form className="mt-6 space-y-4" onSubmit={submitMessage}>
             <label className="block"><span className="text-xs font-extrabold text-[#4c5270]">Recipient name <span className="font-medium text-[#8c90a1]">(optional)</span></span><input value={contactName} onChange={(event) => setContactName(event.target.value)} maxLength={160} className="mt-1.5 w-full rounded-xl border border-[#171b39]/10 bg-[#fbfaf6] px-3 py-2.5 text-sm text-[#303657] outline-none transition focus:border-[#6a5889] focus:ring-2 focus:ring-[#6a5889]/12" placeholder="Contact name" /></label>
-            <label className="block"><span className="text-xs font-extrabold text-[#4c5270]">Recipient number</span><input value={recipient} onChange={(event) => setRecipient(event.target.value)} inputMode="tel" className="mt-1.5 w-full rounded-xl border border-[#171b39]/10 bg-[#fbfaf6] px-3 py-2.5 text-sm text-[#303657] outline-none transition focus:border-[#6a5889] focus:ring-2 focus:ring-[#6a5889]/12" placeholder="+15551234567" aria-describedby="recipient-help" required /><span id="recipient-help" className="mt-1.5 block text-[0.68rem] leading-4 text-[#7d8194]">Use E.164 format. Trial accounts can message verified recipients only.</span></label>
+            <label className="block"><span className="text-xs font-extrabold text-[#4c5270]">Recipient number</span><input value={recipient} onChange={(event) => setRecipient(event.target.value)} inputMode="tel" className="mt-1.5 w-full rounded-xl border border-[#171b39]/10 bg-[#fbfaf6] px-3 py-2.5 text-sm text-[#303657] outline-none transition focus:border-[#6a5889] focus:ring-2 focus:ring-[#6a5889]/12" placeholder="+15551234567" aria-describedby="recipient-help" required /><span id="recipient-help" className="mt-1.5 block text-[0.68rem] leading-4 text-[#7d8194]">Use E.164 format. Custom delivery is currently deferred under the account restriction.</span></label>
             <label className="block"><span className="flex items-center justify-between text-xs font-extrabold text-[#4c5270]">Message <span className="font-medium text-[#8c90a1]">{body.length}/1600</span></span><Textarea value={body} onChange={(event) => setBody(event.target.value)} maxLength={1600} className="mt-1.5 min-h-36 resize-y rounded-xl border-[#171b39]/10 bg-[#fbfaf6] text-sm leading-6 text-[#303657] focus-visible:border-[#6a5889] focus-visible:ring-[#6a5889]/12" placeholder="Write a clear, helpful text…" required /></label>
             <button type="button" onClick={() => setBody(supportAcknowledgement)} className="inline-flex items-center gap-2 text-xs font-extrabold text-[#66547f] transition-colors hover:text-[#433354]"><Settings2 size={14} />Use support acknowledgement template</button>
-            <button type="submit" disabled={!canSend} className="ss-button-primary w-full justify-center disabled:cursor-not-allowed disabled:opacity-50">{sendMutation.isPending ? "Submitting text…" : "Review & send text"}<Send size={16} /></button>
+            <button type="submit" disabled={!canSend} className="ss-button-primary w-full justify-center disabled:cursor-not-allowed disabled:opacity-50">{sendMutation.isPending ? "Submitting text…" : configuration?.configured && !configuration.dispatchEnabled ? "SMS delivery deferred" : "Review & send text"}<Send size={16} /></button>
           </form>
           <Dialog open={confirmationOpen} onOpenChange={setConfirmationOpen}>
             <DialogContent className="border-[#171b39]/10 bg-[#fffdf9] text-[#303657] shadow-[0_24px_80px_rgba(22,26,53,.2)]">
@@ -151,6 +156,7 @@ export default function Inbox() {
             </DialogContent>
           </Dialog>
           <div className="mt-5 rounded-xl border border-[#d9c59f]/35 bg-[#fbf5e9] p-3"><p className="flex items-center gap-2 text-xs font-extrabold text-[#795b32]"><ShieldCheck size={15} />Delivery safeguard</p><p className="mt-1.5 text-[0.7rem] leading-5 text-[#836f50]">The sender must explicitly confirm each live text. Provider credentials remain on the server and never enter this page.</p></div>
+          {configuration?.configured && !configuration.dispatchEnabled ? <div className="mt-3 rounded-xl border border-[#a58258]/20 bg-[#f8f4ea] p-3"><p className="flex items-center gap-2 text-xs font-extrabold text-[#785c35]"><CircleAlert size={15} />Custom delivery deferred</p><p className="mt-1.5 text-[0.7rem] leading-5 text-[#806c50]">{configuration.restrictionReason || "Custom SMS delivery is temporarily unavailable."}</p></div> : null}
           {!configuration?.configured && isAuthenticated ? <div className="mt-3 rounded-xl border border-[#a58258]/20 bg-[#f8f4ea] p-3"><p className="flex items-center gap-2 text-xs font-extrabold text-[#785c35]"><CircleAlert size={15} />Live sending is not configured</p><p className="mt-1.5 text-[0.7rem] leading-5 text-[#806c50]">Add fresh server-side Twilio credentials and an approved sender number to activate this composer.</p></div> : null}
         </aside>
       </div>

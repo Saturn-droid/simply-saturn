@@ -15,8 +15,11 @@ describe("Inbox/Text module foundation", () => {
     expect(inbox).toContain("<Dialog open={confirmationOpen}");
     expect(inbox).toContain("Confirm & send text");
     expect(inbox).toContain("Final review");
+    expect(inbox).toContain("configuration?.dispatchEnabled");
+    expect(inbox).toContain("Custom delivery deferred");
     expect(router).toContain("sms: router");
     expect(router).toContain("confirmLiveSend: z.literal(true)");
+    expect(router).toContain("!configuration.dispatchEnabled");
   });
 
   it("uses accessible native compose controls with contextual recipient help", () => {

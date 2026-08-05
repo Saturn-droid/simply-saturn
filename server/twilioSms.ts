@@ -2,9 +2,11 @@ import { getTwilioEnv } from "./_core/env";
 
 export type SmsProviderConfiguration = {
   configured: boolean;
+  dispatchEnabled: boolean;
   deliveryMode: "messaging-service" | "direct-sender" | "unconfigured";
   authenticationMode: "api-key" | "auth-token" | "unconfigured";
   senderLabel: string | null;
+  restrictionReason: string | null;
 };
 
 export type TwilioSmsResult = {
@@ -33,6 +35,9 @@ const supportedStatuses = new Set<TwilioSmsResult["status"]>([
   "failed",
 ]);
 
+export const CUSTOM_SMS_DELIVERY_DEFERRED_REASON =
+  "Custom SMS delivery is temporarily deferred while the current Twilio free-trial restriction is in effect.";
+
 export function getSmsProviderConfiguration(): SmsProviderConfiguration {
   const twilio = getTwilioEnv();
   const hasApiKey = Boolean(twilio.apiKeySid && twilio.apiKeySecret);
@@ -43,26 +48,32 @@ export function getSmsProviderConfiguration(): SmsProviderConfiguration {
   if (credentialsPresent && twilio.messagingServiceSid) {
     return {
       configured: true,
+      dispatchEnabled: false,
       deliveryMode: "messaging-service",
       authenticationMode,
       senderLabel: "Messaging Service",
+      restrictionReason: CUSTOM_SMS_DELIVERY_DEFERRED_REASON,
     };
   }
 
   if (credentialsPresent && twilio.fromNumber) {
     return {
       configured: true,
+      dispatchEnabled: false,
       deliveryMode: "direct-sender",
       authenticationMode,
       senderLabel: "Approved direct sender",
+      restrictionReason: CUSTOM_SMS_DELIVERY_DEFERRED_REASON,
     };
   }
 
   return {
     configured: false,
+    dispatchEnabled: false,
     deliveryMode: "unconfigured",
     authenticationMode: "unconfigured",
     senderLabel: null,
+    restrictionReason: "SMS is not configured. Add server-side Twilio credentials and an approved sender first.",
   };
 }
 
@@ -85,6 +96,10 @@ export async function sendTwilioSms(input: { to: string; body: string }): Promis
     throw new TwilioSmsError(
       "SMS is not configured. Add fresh server-side Twilio credentials and an approved sender before sending.",
     );
+  }
+
+  if (!configuration.dispatchEnabled) {
+    throw new TwilioSmsError(configuration.restrictionReason || CUSTOM_SMS_DELIVERY_DEFERRED_REASON);
   }
 
   if (!isE164PhoneNumber(input.to)) {

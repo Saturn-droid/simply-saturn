@@ -1,5 +1,5 @@
 import { afterEach, describe, expect, it, vi } from "vitest";
-import { getSmsProviderConfiguration, sendTwilioSms } from "./twilioSms";
+import { CUSTOM_SMS_DELIVERY_DEFERRED_REASON, getSmsProviderConfiguration, sendTwilioSms } from "./twilioSms";
 
 const twilioKeys = [
   "TWILIO_ACCOUNT_SID",
@@ -31,29 +31,23 @@ describe("Twilio SMS gateway", () => {
     await expect(sendTwilioSms({ to: "+15551234567", body: "Hello" })).rejects.toThrow("SMS is not configured");
   });
 
-  it("uses a direct approved sender as the trial-compatible fallback without making a real network call", async () => {
+  it("reports a direct approved sender as configured but blocks custom delivery while the trial restriction is active", async () => {
     process.env.TWILIO_ACCOUNT_SID = "ACtest";
     process.env.TWILIO_API_KEY_SID = "SKtest";
     process.env.TWILIO_API_KEY_SECRET = "secret";
     process.env.TWILIO_FROM_NUMBER = "+15557654321";
     delete process.env.TWILIO_MESSAGING_SERVICE_SID;
 
-    const fetchMock = vi.fn().mockResolvedValue(
-      new Response(JSON.stringify({ sid: "SMtest", status: "queued" }), { status: 201 }),
-    );
+    const fetchMock = vi.fn();
     vi.stubGlobal("fetch", fetchMock);
 
-    const result = await sendTwilioSms({ to: "+15551234567", body: "Hello" });
-    const request = fetchMock.mock.calls[0];
-    const payload = new URLSearchParams(String(request[1]?.body));
+    await expect(sendTwilioSms({ to: "+15551234567", body: "Hello" })).rejects.toThrow(CUSTOM_SMS_DELIVERY_DEFERRED_REASON);
 
-    expect(getSmsProviderConfiguration()).toMatchObject({ configured: true, deliveryMode: "direct-sender", authenticationMode: "api-key" });
-    expect(payload.get("From")).toBe("+15557654321");
-    expect(payload.get("MessagingServiceSid")).toBeNull();
-    expect(result).toEqual({ sid: "SMtest", status: "queued", errorCode: undefined, errorMessage: undefined });
+    expect(getSmsProviderConfiguration()).toMatchObject({ configured: true, dispatchEnabled: false, deliveryMode: "direct-sender", authenticationMode: "api-key" });
+    expect(fetchMock).not.toHaveBeenCalled();
   });
 
-  it("supports a fresh server-only Auth Token when a trial account has no API key available", async () => {
+  it("retains server-only Auth Token configuration without permitting dispatch", async () => {
     process.env.TWILIO_ACCOUNT_SID = "ACtest";
     process.env.TWILIO_AUTH_TOKEN = "rotated-token";
     process.env.TWILIO_FROM_NUMBER = "+15557654321";
@@ -61,15 +55,12 @@ describe("Twilio SMS gateway", () => {
     delete process.env.TWILIO_API_KEY_SECRET;
     delete process.env.TWILIO_MESSAGING_SERVICE_SID;
 
-    const fetchMock = vi.fn().mockResolvedValue(
-      new Response(JSON.stringify({ sid: "SMtoken", status: "queued" }), { status: 201 }),
-    );
+    const fetchMock = vi.fn();
     vi.stubGlobal("fetch", fetchMock);
 
-    await sendTwilioSms({ to: "+15551234567", body: "Hello" });
-    const authorization = String(fetchMock.mock.calls[0]?.[1]?.headers?.Authorization);
+    await expect(sendTwilioSms({ to: "+15551234567", body: "Hello" })).rejects.toThrow(CUSTOM_SMS_DELIVERY_DEFERRED_REASON);
 
-    expect(getSmsProviderConfiguration()).toMatchObject({ configured: true, authenticationMode: "auth-token" });
-    expect(Buffer.from(authorization.replace("Basic ", ""), "base64").toString()).toBe("ACtest:rotated-token");
+    expect(getSmsProviderConfiguration()).toMatchObject({ configured: true, dispatchEnabled: false, authenticationMode: "auth-token" });
+    expect(fetchMock).not.toHaveBeenCalled();
   });
 });
