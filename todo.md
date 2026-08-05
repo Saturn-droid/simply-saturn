@@ -88,3 +88,5 @@
 - [x] Add protected Reports procedures and regression coverage for owner-scoped metric aggregation and reporting displays.
 - [x] Add an explicit Reports error or empty-state branch so unavailable overview data does not appear to load indefinitely.
 - [x] Add regression coverage for Reports query failure and missing-payload states.
+- [ ] Future provider work: configure a domain-specific no-reply email sender, then complete transactional member-invitation delivery, pending-invitation visibility, and acceptance notifications.
+- [ ] Future provider work: after Twilio supports approved custom messages and a restricted API key is available, revalidate permissions and complete the first explicitly approved SMS using the exact recipient and message body.
