@@ -125,6 +125,7 @@
 .ss-auth-wave { position: absolute; inset: auto 0 0; width: 100%; height: 6.5rem; fill: #f7f7f3; pointer-events: none; }
 
 .ss-auth-shell .ss-auth-form-slot > form,
+.ss-auth-shell .ss-auth-form-slot > section,
 .ss-auth-shell .ss-auth-form-slot > div {
   border-color: rgba(184, 207, 236, .2) !important;
   background: rgba(11, 28, 60, .74) !important;
@@ -136,6 +137,7 @@
 .ss-auth-shell .ss-auth-form-slot h3,
 .ss-auth-shell .ss-auth-form-slot label { color: #edf4ff !important; }
 .ss-auth-shell .ss-auth-form-slot p { color: #c3d0e4 !important; }
+.ss-auth-shell .ss-auth-form-slot [role="alert"] { color: #8b3e39 !important; }
 .ss-auth-shell .ss-auth-form-slot a { color: #b8d8f3 !important; }
 .ss-auth-shell .ss-auth-form-slot .ss-input {
   border-color: rgba(202, 220, 241, .22);

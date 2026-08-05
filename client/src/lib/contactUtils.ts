@@ -1,7 +1,7 @@
 export const contactStatuses = ["dead", "expired", "dnc", "prospect", "active", "forever_client", "vendor"] as const;
-export type ContactStatus = (typeof contactStatuses)[number];
+export type ContactStatus = string;
 
-export const contactStatusLabels: Record<ContactStatus, string> = {
+export const contactStatusLabels: Record<string, string> = {
   dead: "Dead",
   expired: "Expired",
   dnc: "DNC",
@@ -59,6 +59,11 @@ export function statusTone(status: ContactStatus | null) {
   if (status === "prospect") return "bg-[#e9effc] text-[#4b6191]";
   if (status === "vendor") return "bg-[#f5eee3] text-[#8a6533]";
   return "bg-[#f8e9e7] text-[#9a5149]";
+}
+
+export function displayContactStatus(status: ContactStatus | null) {
+  if (!status) return "No status";
+  return contactStatusLabels[status] || status;
 }
 
 export function contactActionHref(contact: ContactRecord, channel: ContactChannel) {

@@ -112,7 +112,7 @@ export async function getUserByOpenId(openId: string) {
 }
 
 export const contactStatusValues = ["dead", "expired", "dnc", "prospect", "active", "forever_client", "vendor"] as const;
-export type ContactStatusValue = (typeof contactStatusValues)[number];
+export type ContactStatusValue = string;
 export const contactTypeValues = ["buyer", "seller", "investor", "vendor", "agent", "tenant", "landlord", "other"] as const;
 export type ContactTypeValue = (typeof contactTypeValues)[number];
 export type ContactActivityChannel = "text" | "call" | "email";

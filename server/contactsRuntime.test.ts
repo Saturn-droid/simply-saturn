@@ -76,6 +76,12 @@ describe("contacts runtime contract", () => {
     expect(contactsDb.setCrmContactStatus).toHaveBeenCalledWith({ ownerUserId: 41, contactId: 81, status: null });
   });
 
+  it("allows a workspace to save a custom optional ISA status label", async () => {
+    await caller().contacts.setStatus({ contactId: 81, status: "Nurture next quarter" });
+
+    expect(contactsDb.setCrmContactStatus).toHaveBeenCalledWith({ ownerUserId: 41, contactId: 81, status: "Nurture next quarter" });
+  });
+
   it("records text, call, and email handoffs against the selected contact", async () => {
     await caller().contacts.recordActivity({ contactId: 81, channel: "text" });
     await caller().contacts.recordActivity({ contactId: 81, channel: "call" });

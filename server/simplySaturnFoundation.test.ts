@@ -106,7 +106,7 @@ describe("Simply Saturn product foundation", () => {
     expect(contact).toContain("type=\"email\"");
     expect(contact).toContain("required");
     expect(contact).toContain("PROTOTYPE FORM");
-    expect(login).toContain("Forgot password?");
+    expect(login).toContain("Need account help?");
     expect(login).toContain("Create an organization");
     expect(login).toContain("Accept an invite");
     expect(login).toContain("role-based access");

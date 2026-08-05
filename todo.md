@@ -98,3 +98,10 @@
 - [x] Refine the login composition to match the main sales hero’s single-scene structure, spacing, and hierarchy more closely than the current split experience.
 - [x] Verify and, if needed, correct month-calendar See more overflow behavior for timed and multi-day events without altering all-day placement.
 - [x] Verify and, if needed, correct duration-preserving start-time changes for new and edited calendar events.
+- [x] Ensure the sales-aligned login remains fully responsive on mobile and communicates incorrect credentials with a clear accessible error state.
+- [x] Replace the month-calendar See more details panel with a clean anchored popover listing all events for the selected day.
+- [x] Complete the Contacts list operational view with quick contact buttons, real deal counts, and customizable optional statuses with removal support.
+- [x] Add regression coverage for login credential errors, calendar See more popover behavior, and Contacts list quick actions, deal counts, and custom statuses.
+- [x] Use an accurate secure workspace sign-in path rather than a nonfunctional email/password submission, while preserving clear failure feedback if authentication cannot be started.
+- [x] Make Contacts custom status editing controlled and query-synced so saving or removing a status immediately updates the rendered list field.
+- [x] Add DOM coverage for Contacts custom-status entry, save, removal, and immediate rendered-state synchronization.

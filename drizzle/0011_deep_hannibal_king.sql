@@ -1,0 +1,1 @@
+ALTER TABLE `crmContacts` MODIFY COLUMN `status` varchar(80);

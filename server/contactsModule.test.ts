@@ -17,24 +17,26 @@ describe("contacts module contract", () => {
 
   it("renders the requested operational columns and omits a relationship filter", () => {
     const contacts = read("client/src/pages/Contacts.tsx");
+    const table = read("client/src/components/ContactListTable.tsx");
 
-    expect(contacts).toContain(">Contact info<");
-    expect(contacts).toContain(">Type(s)<");
-    expect(contacts).toContain(">Deals<");
-    expect(contacts).toContain(">Last contact<");
-    expect(contacts).toContain(">Status<");
+    expect(table).toContain(">Contact info<");
+    expect(table).toContain(">Type(s)<");
+    expect(table).toContain(">Deals<");
+    expect(table).toContain(">Last contact<");
+    expect(table).toContain(">Status<");
     expect(contacts).toContain("All statuses");
     expect(contacts).not.toContain("relationship filter");
   });
 
   it("exposes optional removable ISA statuses and quick contact actions", () => {
     const contacts = read("client/src/pages/Contacts.tsx");
+    const table = read("client/src/components/ContactListTable.tsx");
     const detail = read("client/src/pages/ContactDetail.tsx");
     const actions = read("client/src/components/ContactQuickActions.tsx");
     const utils = read("client/src/lib/contactUtils.ts");
 
     expect(utils).toContain("forever_client");
-    expect(contacts).toContain("Remove ${contact.displayName} status");
+    expect(table).toContain("Remove ${contact.displayName} status");
     expect(detail).toContain("Remove status");
     expect(actions).toContain("contactActionHref");
     expect(actions).toContain("Call ${contact.displayName}");

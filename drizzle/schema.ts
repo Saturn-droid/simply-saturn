@@ -183,7 +183,7 @@ export const crmContacts = mysqlTable(
     email: varchar("email", { length: 320 }),
     phone: varchar("phone", { length: 32 }),
     typesJson: text("typesJson").notNull(),
-    status: mysqlEnum("status", ["dead", "expired", "dnc", "prospect", "active", "forever_client", "vendor"]),
+    status: varchar("status", { length: 80 }),
     dealCount: int("dealCount").default(0).notNull(),
     lastTextAt: timestamp("lastTextAt"),
     lastCallAt: timestamp("lastCallAt"),
