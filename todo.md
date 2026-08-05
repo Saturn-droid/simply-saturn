@@ -82,3 +82,5 @@
 - [x] Add protected Documents procedures and regression coverage for document creation, status updates, and connected contact or deal context.
 - [x] Build the next non-provider queue item: a Marketing workspace with owner-scoped campaign records, audience context, and controlled lifecycle statuses.
 - [x] Add protected Marketing procedures and regression coverage for campaign creation, audience counts, and lifecycle transitions.
+- [x] Build the next non-provider queue item: an Automations workspace with owner-scoped rules, trigger and action context, and controlled activation states.
+- [x] Add protected Automations procedures and regression coverage for rule creation, safe activation toggles, and lifecycle transitions without executing outbound communication.

@@ -90,6 +90,17 @@ const campaignPayloadSchema = z.object({
   scheduledAt: z.coerce.date().optional(),
 });
 
+const automationTriggerSchema = z.enum(["contact_created", "contact_status_changed", "deal_stage_changed", "task_completed", "document_status_changed"]);
+const automationActionSchema = z.enum(["create_task", "change_contact_status", "create_document_record", "notify_owner"]);
+const automationStatusSchema = z.enum(["draft", "active", "paused"]);
+const automationPayloadSchema = z.object({
+  name: z.string().trim().min(1).max(240),
+  trigger: automationTriggerSchema,
+  action: automationActionSchema,
+  actionDetail: z.string().trim().max(400).optional(),
+  status: automationStatusSchema.default("draft"),
+});
+
 async function validateCalendarEventPayload(ownerUserId: number, input: z.infer<typeof calendarEventPayloadSchema>) {
   if (input.endsAt.getTime() <= input.startsAt.getTime()) {
     throw new TRPCError({ code: "BAD_REQUEST", message: "End time must be later than the start time." });
@@ -337,6 +348,18 @@ export const appRouter = router({
         const campaign = await db.setCrmCampaignStatus({ ownerUserId: ctx.user.id, ...input });
         if (!campaign) throw new TRPCError({ code: "NOT_FOUND", message: "That campaign is unavailable." });
         return campaign;
+      }),
+  }),
+
+  automations: router({
+    list: protectedProcedure.query(({ ctx }) => db.listCrmAutomationRules(ctx.user.id)),
+    create: protectedProcedure.input(automationPayloadSchema).mutation(({ ctx, input }) => db.createCrmAutomationRule({ ownerUserId: ctx.user.id, ...input })),
+    setStatus: protectedProcedure
+      .input(z.object({ ruleId: z.number().int().positive(), status: automationStatusSchema }))
+      .mutation(async ({ ctx, input }) => {
+        const rule = await db.setCrmAutomationRuleStatus({ ownerUserId: ctx.user.id, ...input });
+        if (!rule) throw new TRPCError({ code: "NOT_FOUND", message: "That automation rule is unavailable." });
+        return rule;
       }),
   }),
 

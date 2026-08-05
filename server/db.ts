@@ -12,6 +12,7 @@ import {
   contactActivities,
   crmContacts,
   crmCampaigns,
+  crmAutomationRules,
   crmDeals,
   crmDocuments,
   crmTasks,
@@ -130,6 +131,12 @@ export const campaignAudienceValues = ["all_contacts", "prospect", "active", "fo
 export type CampaignAudienceValue = (typeof campaignAudienceValues)[number];
 export const campaignStatusValues = ["draft", "scheduled", "paused", "completed"] as const;
 export type CampaignStatusValue = (typeof campaignStatusValues)[number];
+export const automationTriggerValues = ["contact_created", "contact_status_changed", "deal_stage_changed", "task_completed", "document_status_changed"] as const;
+export type AutomationTriggerValue = (typeof automationTriggerValues)[number];
+export const automationActionValues = ["create_task", "change_contact_status", "create_document_record", "notify_owner"] as const;
+export type AutomationActionValue = (typeof automationActionValues)[number];
+export const automationStatusValues = ["draft", "active", "paused"] as const;
+export type AutomationStatusValue = (typeof automationStatusValues)[number];
 
 function parseContactTypes(typesJson: string): ContactTypeValue[] {
   try {
@@ -580,6 +587,55 @@ export async function setCrmCampaignStatus(input: { ownerUserId: number; campaig
   if (!result[0]?.affectedRows) return undefined;
   const campaigns = await listCrmCampaigns(input.ownerUserId);
   return campaigns.find((campaign) => campaign.id === input.campaignId);
+}
+
+export type CrmAutomationRuleRecord = {
+  id: number;
+  ownerUserId: number;
+  name: string;
+  trigger: AutomationTriggerValue;
+  action: AutomationActionValue;
+  actionDetail: string | null;
+  status: AutomationStatusValue;
+  createdAt: Date;
+  updatedAt: Date;
+};
+
+export async function listCrmAutomationRules(ownerUserId: number): Promise<CrmAutomationRuleRecord[]> {
+  const db = await getDb();
+  if (!db) return [];
+  return db.select().from(crmAutomationRules).where(eq(crmAutomationRules.ownerUserId, ownerUserId)).orderBy(desc(crmAutomationRules.updatedAt));
+}
+
+export async function createCrmAutomationRule(input: {
+  ownerUserId: number;
+  name: string;
+  trigger: AutomationTriggerValue;
+  action: AutomationActionValue;
+  actionDetail?: string;
+  status: AutomationStatusValue;
+}) {
+  const db = await getDb();
+  if (!db) throw new Error("Database is not available for automation rules.");
+  const [created] = await db.insert(crmAutomationRules).values({
+    ownerUserId: input.ownerUserId,
+    name: input.name,
+    trigger: input.trigger,
+    action: input.action,
+    actionDetail: input.actionDetail || null,
+    status: input.status,
+  }).$returningId();
+  const rules = await listCrmAutomationRules(input.ownerUserId);
+  return rules.find((rule) => rule.id === created.id);
+}
+
+export async function setCrmAutomationRuleStatus(input: { ownerUserId: number; ruleId: number; status: AutomationStatusValue }) {
+  const db = await getDb();
+  if (!db) throw new Error("Database is not available for automation rules.");
+  const result = await db.update(crmAutomationRules).set({ status: input.status }).where(and(eq(crmAutomationRules.ownerUserId, input.ownerUserId), eq(crmAutomationRules.id, input.ruleId)));
+  if (!result[0]?.affectedRows) return undefined;
+  const rules = await listCrmAutomationRules(input.ownerUserId);
+  return rules.find((rule) => rule.id === input.ruleId);
 }
 
 export async function listSmsConversations(ownerUserId: number): Promise<SmsConversation[]> {

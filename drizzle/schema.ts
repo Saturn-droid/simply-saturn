@@ -319,9 +319,33 @@ export const crmCampaigns = mysqlTable(
   ],
 );
 
+/**
+ * Owner-scoped automation rule definitions. These records are configuration
+ * only; no background execution or outbound action is initiated from them.
+ */
+export const crmAutomationRules = mysqlTable(
+  "crmAutomationRules",
+  {
+    id: int("id").autoincrement().primaryKey(),
+    ownerUserId: int("ownerUserId").notNull().references(() => users.id),
+    name: varchar("name", { length: 240 }).notNull(),
+    trigger: mysqlEnum("trigger", ["contact_created", "contact_status_changed", "deal_stage_changed", "task_completed", "document_status_changed"]).notNull(),
+    action: mysqlEnum("action", ["create_task", "change_contact_status", "create_document_record", "notify_owner"]).notNull(),
+    actionDetail: varchar("actionDetail", { length: 400 }),
+    status: mysqlEnum("status", ["draft", "active", "paused"]).default("draft").notNull(),
+    createdAt: timestamp("createdAt").defaultNow().notNull(),
+    updatedAt: timestamp("updatedAt").defaultNow().onUpdateNow().notNull(),
+  },
+  (table) => [
+    index("crm_automation_rules_owner_status_updated_idx").on(table.ownerUserId, table.status, table.updatedAt),
+    index("crm_automation_rules_owner_trigger_idx").on(table.ownerUserId, table.trigger),
+  ],
+);
+
 export type CrmContact = typeof crmContacts.$inferSelect;
 export type ContactActivity = typeof contactActivities.$inferSelect;
 export type CrmDeal = typeof crmDeals.$inferSelect;
 export type CrmTask = typeof crmTasks.$inferSelect;
 export type CrmDocument = typeof crmDocuments.$inferSelect;
 export type CrmCampaign = typeof crmCampaigns.$inferSelect;
+export type CrmAutomationRule = typeof crmAutomationRules.$inferSelect;

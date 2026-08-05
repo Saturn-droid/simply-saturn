@@ -1,6 +1,7 @@
 import { Toaster } from "@/components/ui/sonner";
 import { TooltipProvider } from "@/components/ui/tooltip";
 import About from "@/pages/About";
+import Automations from "@/pages/Automations";
 import Calendar from "@/pages/Calendar";
 import Contact from "@/pages/Contact";
 import ContactDetail from "@/pages/ContactDetail";
@@ -44,6 +45,7 @@ function Router() {
       <Route path="/app/deals" component={Deals} />
       <Route path="/app/documents" component={Documents} />
       <Route path="/app/marketing" component={Marketing} />
+      <Route path="/app/automations" component={Automations} />
       <Route path="/app/tasks" component={Tasks} />
       <Route path="/app/contacts/:contactId" component={ContactDetail} />
       <Route path="/app/contacts" component={Contacts} />
