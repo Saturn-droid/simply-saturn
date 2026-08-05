@@ -242,6 +242,34 @@ export const crmDeals = mysqlTable(
   ],
 );
 
+/**
+ * Owner-scoped work items that can be linked to one CRM contact, one deal, or
+ * both. The task record keeps responsibility and follow-up close to the work.
+ */
+export const crmTasks = mysqlTable(
+  "crmTasks",
+  {
+    id: int("id").autoincrement().primaryKey(),
+    ownerUserId: int("ownerUserId").notNull().references(() => users.id),
+    contactId: int("contactId").references(() => crmContacts.id),
+    dealId: int("dealId").references(() => crmDeals.id),
+    title: varchar("title", { length: 240 }).notNull(),
+    notes: text("notes"),
+    dueAt: timestamp("dueAt"),
+    priority: mysqlEnum("priority", ["low", "normal", "high"]).default("normal").notNull(),
+    status: mysqlEnum("status", ["open", "completed"]).default("open").notNull(),
+    completedAt: timestamp("completedAt"),
+    createdAt: timestamp("createdAt").defaultNow().notNull(),
+    updatedAt: timestamp("updatedAt").defaultNow().onUpdateNow().notNull(),
+  },
+  (table) => [
+    index("crm_tasks_owner_status_due_idx").on(table.ownerUserId, table.status, table.dueAt),
+    index("crm_tasks_owner_contact_idx").on(table.ownerUserId, table.contactId),
+    index("crm_tasks_owner_deal_idx").on(table.ownerUserId, table.dealId),
+  ],
+);
+
 export type CrmContact = typeof crmContacts.$inferSelect;
 export type ContactActivity = typeof contactActivities.$inferSelect;
 export type CrmDeal = typeof crmDeals.$inferSelect;
+export type CrmTask = typeof crmTasks.$inferSelect;

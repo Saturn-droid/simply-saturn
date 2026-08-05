@@ -76,3 +76,5 @@
 - [x] Add regression coverage for email-recipient suggestions, selection, and external-address entry in the Inbox composer.
 - [x] Build the next non-provider queue item: a Deals workspace with contact-linked real estate deals, a clear pipeline-stage board, and controlled stage updates.
 - [x] Add protected Deals data procedures and regression coverage for deal creation, contact association, and stage transitions.
+- [x] Build the next non-provider queue item: a Tasks workspace with owner-scoped tasks, due dates, status controls, and optional contact or deal context.
+- [x] Add protected Tasks procedures and regression coverage for task creation, completion, due dates, and connected contact or deal context.

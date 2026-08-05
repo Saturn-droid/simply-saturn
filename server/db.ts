@@ -12,6 +12,7 @@ import {
   contactActivities,
   crmContacts,
   crmDeals,
+  crmTasks,
   workspaceTeamMembers,
   SmsConversation,
   SmsMessage,
@@ -114,6 +115,9 @@ export type ContactTypeValue = (typeof contactTypeValues)[number];
 export type ContactActivityChannel = "text" | "call" | "email";
 export const dealStageValues = ["lead", "qualification", "active", "offer", "under_contract", "closed", "lost"] as const;
 export type DealStageValue = (typeof dealStageValues)[number];
+export const taskPriorityValues = ["low", "normal", "high"] as const;
+export type TaskPriorityValue = (typeof taskPriorityValues)[number];
+export type TaskStatusValue = "open" | "completed";
 
 function parseContactTypes(typesJson: string): ContactTypeValue[] {
   try {
@@ -342,6 +346,94 @@ export async function updateCrmDealStage(input: { ownerUserId: number; dealId: n
   if (!result[0]?.affectedRows) return undefined;
   const deals = await listCrmDeals(input.ownerUserId);
   return deals.find((deal) => deal.id === input.dealId);
+}
+
+export type CrmTaskWithContext = {
+  id: number;
+  ownerUserId: number;
+  contactId: number | null;
+  contactName: string | null;
+  dealId: number | null;
+  dealTitle: string | null;
+  title: string;
+  notes: string | null;
+  dueAt: Date | null;
+  priority: TaskPriorityValue;
+  status: TaskStatusValue;
+  completedAt: Date | null;
+  createdAt: Date;
+  updatedAt: Date;
+};
+
+export async function listCrmTasks(ownerUserId: number): Promise<CrmTaskWithContext[]> {
+  const db = await getDb();
+  if (!db) return [];
+  return db
+    .select({
+      id: crmTasks.id,
+      ownerUserId: crmTasks.ownerUserId,
+      contactId: crmTasks.contactId,
+      contactName: crmContacts.displayName,
+      dealId: crmTasks.dealId,
+      dealTitle: crmDeals.title,
+      title: crmTasks.title,
+      notes: crmTasks.notes,
+      dueAt: crmTasks.dueAt,
+      priority: crmTasks.priority,
+      status: crmTasks.status,
+      completedAt: crmTasks.completedAt,
+      createdAt: crmTasks.createdAt,
+      updatedAt: crmTasks.updatedAt,
+    })
+    .from(crmTasks)
+    .leftJoin(crmContacts, eq(crmTasks.contactId, crmContacts.id))
+    .leftJoin(crmDeals, eq(crmTasks.dealId, crmDeals.id))
+    .where(eq(crmTasks.ownerUserId, ownerUserId))
+    .orderBy(asc(crmTasks.status), asc(crmTasks.dueAt), desc(crmTasks.updatedAt));
+}
+
+export async function createCrmTask(input: {
+  ownerUserId: number;
+  contactId?: number;
+  dealId?: number;
+  title: string;
+  notes?: string;
+  dueAt?: Date;
+  priority: TaskPriorityValue;
+}) {
+  const db = await getDb();
+  if (!db) throw new Error("Database is not available for tasks.");
+  if (input.contactId) {
+    const contact = await getCrmContact({ ownerUserId: input.ownerUserId, contactId: input.contactId });
+    if (!contact) return undefined;
+  }
+  if (input.dealId) {
+    const deal = (await listCrmDeals(input.ownerUserId)).find((item) => item.id === input.dealId);
+    if (!deal) return undefined;
+  }
+  const [created] = await db.insert(crmTasks).values({
+    ownerUserId: input.ownerUserId,
+    contactId: input.contactId ?? null,
+    dealId: input.dealId ?? null,
+    title: input.title,
+    notes: input.notes || null,
+    dueAt: input.dueAt ?? null,
+    priority: input.priority,
+  }).$returningId();
+  const tasks = await listCrmTasks(input.ownerUserId);
+  return tasks.find((task) => task.id === created.id);
+}
+
+export async function setCrmTaskStatus(input: { ownerUserId: number; taskId: number; status: TaskStatusValue }) {
+  const db = await getDb();
+  if (!db) throw new Error("Database is not available for tasks.");
+  const result = await db
+    .update(crmTasks)
+    .set({ status: input.status, completedAt: input.status === "completed" ? new Date() : null })
+    .where(and(eq(crmTasks.ownerUserId, input.ownerUserId), eq(crmTasks.id, input.taskId)));
+  if (!result[0]?.affectedRows) return undefined;
+  const tasks = await listCrmTasks(input.ownerUserId);
+  return tasks.find((task) => task.id === input.taskId);
 }
 
 export async function listSmsConversations(ownerUserId: number): Promise<SmsConversation[]> {

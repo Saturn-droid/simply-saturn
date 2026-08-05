@@ -56,6 +56,16 @@ const dealPayloadSchema = z.object({
   targetCloseAt: z.coerce.date().optional(),
 });
 
+const taskPrioritySchema = z.enum(["low", "normal", "high"]);
+const taskPayloadSchema = z.object({
+  contactId: z.number().int().positive().optional(),
+  dealId: z.number().int().positive().optional(),
+  title: z.string().trim().min(1).max(240),
+  notes: z.string().trim().max(4000).optional(),
+  dueAt: z.coerce.date().optional(),
+  priority: taskPrioritySchema.default("normal"),
+});
+
 async function validateCalendarEventPayload(ownerUserId: number, input: z.infer<typeof calendarEventPayloadSchema>) {
   if (input.endsAt.getTime() <= input.startsAt.getTime()) {
     throw new TRPCError({ code: "BAD_REQUEST", message: "End time must be later than the start time." });
@@ -255,6 +265,24 @@ export const appRouter = router({
         const deal = await db.updateCrmDealStage({ ownerUserId: ctx.user.id, ...input });
         if (!deal) throw new TRPCError({ code: "NOT_FOUND", message: "That deal is unavailable." });
         return deal;
+      }),
+  }),
+
+  tasks: router({
+    list: protectedProcedure.query(({ ctx }) => db.listCrmTasks(ctx.user.id)),
+    create: protectedProcedure
+      .input(taskPayloadSchema)
+      .mutation(async ({ ctx, input }) => {
+        const task = await db.createCrmTask({ ownerUserId: ctx.user.id, ...input });
+        if (!task) throw new TRPCError({ code: "NOT_FOUND", message: "Choose a contact or deal that belongs to this workspace." });
+        return task;
+      }),
+    setStatus: protectedProcedure
+      .input(z.object({ taskId: z.number().int().positive(), status: z.enum(["open", "completed"]) }))
+      .mutation(async ({ ctx, input }) => {
+        const task = await db.setCrmTaskStatus({ ownerUserId: ctx.user.id, ...input });
+        if (!task) throw new TRPCError({ code: "NOT_FOUND", message: "That task is unavailable." });
+        return task;
       }),
   }),
 
