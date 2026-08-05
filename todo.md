@@ -93,3 +93,5 @@
 - [x] Keep month-calendar day cells at a stable height while preserving the existing all-day event area beside each date.
 - [x] Cap visible timed and multi-day event rows in each month cell and provide a See more control for remaining events on that date.
 - [x] Add regression coverage for month-view overflow counts, all-day separation, and See more detail access.
+- [x] Restyle the sign-in route and any related authentication entry screens to match the established dark Simply Saturn sales-page branding without altering the main sales pages.
+- [x] Add regression coverage for the branded sign-in route and its authentication entry behavior.

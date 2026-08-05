@@ -88,6 +88,57 @@
   --ease-in-out: cubic-bezier(0.77, 0, 0.175, 1);
 }
 
+/* Public-auth surfaces deliberately mirror the premium navy sales hero rather than the workspace canvas. */
+.ss-auth-shell {
+  position: relative;
+  overflow: hidden;
+  background: radial-gradient(circle at 84% 78%, rgba(109, 143, 199, .32), transparent 31%), linear-gradient(120deg, #07132c 0%, #10284f 51%, #182f58 100%);
+}
+
+.ss-auth-shell::before {
+  content: "";
+  position: absolute;
+  inset: auto -12rem -18rem auto;
+  width: 48rem;
+  height: 28rem;
+  border-radius: 50%;
+  border: 1px solid rgba(255, 255, 255, .15);
+  transform: rotate(-10deg);
+  pointer-events: none;
+}
+
+.ss-auth-promise { background: linear-gradient(125deg, rgba(4, 14, 34, .48), rgba(4, 14, 34, .1)); }
+.ss-auth-main { background: linear-gradient(90deg, rgba(8, 20, 46, .16), rgba(14, 38, 75, .48)); }
+.ss-auth-glow { background: rgba(151, 186, 232, .2); }
+
+.ss-auth-shell .ss-auth-form-slot > form,
+.ss-auth-shell .ss-auth-form-slot > div {
+  border-color: rgba(184, 207, 236, .2) !important;
+  background: rgba(11, 28, 60, .74) !important;
+  box-shadow: 0 26px 80px rgba(0, 6, 24, .36) !important;
+  backdrop-filter: blur(18px);
+  color: #edf4ff;
+}
+
+.ss-auth-shell .ss-auth-form-slot h3,
+.ss-auth-shell .ss-auth-form-slot label { color: #edf4ff !important; }
+.ss-auth-shell .ss-auth-form-slot p { color: #c3d0e4 !important; }
+.ss-auth-shell .ss-auth-form-slot a { color: #b8d8f3 !important; }
+.ss-auth-shell .ss-auth-form-slot .ss-input {
+  border-color: rgba(202, 220, 241, .22);
+  background: rgba(255, 255, 255, .96);
+  color: #142544;
+}
+.ss-auth-shell .ss-auth-form-slot .ss-input::placeholder { color: #71819a; }
+.ss-auth-shell .ss-auth-form-slot .ss-button-primary { background: #f7f3eb; color: #132546; box-shadow: none; }
+.ss-auth-shell .ss-auth-form-slot .ss-button-primary:hover { background: #fff; }
+.ss-auth-shell .ss-auth-form-slot .ss-button-secondary { border-color: rgba(210, 226, 246, .28); background: rgba(255, 255, 255, .08); color: #edf4ff; }
+.ss-auth-shell .ss-auth-form-slot .ss-button-secondary:hover { background: rgba(255, 255, 255, .15); }
+
+@media (max-width: 1023px) {
+  .ss-auth-main { background: linear-gradient(155deg, rgba(8, 22, 49, .42), rgba(17, 43, 84, .7)); }
+}
+
 .dark {
   --background: oklch(0.18 0.032 278);
   --foreground: oklch(0.94 0.012 92);
