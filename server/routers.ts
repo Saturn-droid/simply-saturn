@@ -4,7 +4,7 @@ import { z } from "zod";
 import * as db from "./db";
 import { getSessionCookieOptions } from "./_core/cookies";
 import { systemRouter } from "./_core/systemRouter";
-import { protectedProcedure, publicProcedure, router } from "./_core/trpc";
+import { adminProcedure, protectedProcedure, publicProcedure, router } from "./_core/trpc";
 import { getSmsProviderConfiguration, isE164PhoneNumber, sendTwilioSms, TwilioSmsError } from "./twilioSms";
 
 const calendarParticipantSchema = z.discriminatedUnion("kind", [
@@ -227,6 +227,44 @@ export const appRouter = router({
         const contact = await db.recordCrmContactActivity({ ownerUserId: ctx.user.id, contactId: input.contactId, channel: input.channel });
         if (!contact) throw new TRPCError({ code: "NOT_FOUND", message: "That contact is unavailable." });
         return contact;
+      }),
+  }),
+
+  team: router({
+    list: protectedProcedure.query(async ({ ctx }) => {
+      const workspaceOwnerId = await db.resolveWorkspaceOwnerUserId(ctx.user.id);
+      return db.listWorkspaceTeamMembers(workspaceOwnerId);
+    }),
+    updateMyPhone: protectedProcedure
+      .input(z.object({ phone: z.string().trim().min(7).max(32).nullable() }))
+      .mutation(async ({ ctx, input }) => {
+        const member = await db.updateWorkspaceMemberPhone({ memberUserId: ctx.user.id, phone: input.phone || null });
+        if (!member) throw new TRPCError({ code: "NOT_FOUND", message: "Your workspace member record is unavailable." });
+        return member;
+      }),
+    enroll: adminProcedure
+      .input(z.object({ email: z.string().trim().email().max(320) }))
+      .mutation(async ({ ctx, input }) => {
+        const member = await db.addWorkspaceTeamMemberByEmail({
+          ownerUserId: ctx.user.id,
+          email: input.email,
+        });
+        if (!member) {
+          throw new TRPCError({
+            code: "NOT_FOUND",
+            message: "That person needs to sign in to Simply Saturn before they can be enrolled on this team.",
+          });
+        }
+        return member;
+      }),
+    remove: adminProcedure
+      .input(z.object({ memberUserId: z.number().int().positive() }))
+      .mutation(async ({ ctx, input }) => {
+        const removed = await db.removeWorkspaceTeamMember({ ownerUserId: ctx.user.id, memberUserId: input.memberUserId });
+        if (!removed) {
+          throw new TRPCError({ code: "BAD_REQUEST", message: "The workspace owner cannot be removed from the team directory." });
+        }
+        return { success: true } as const;
       }),
   }),
 

@@ -68,3 +68,7 @@
 - [x] Add an Inbox handoff integration test that connects explicit email and call completion acknowledgements to the verified contact summary update result.
 - [x] Surface the confirmed email or call last-contact summary in Inbox after the completion mutation succeeds.
 - [x] Add DOM integration coverage verifying explicit email and call completion renders the returned contact-summary update.
+- [x] Build the next non-Twilio queue item: a Team Management workspace with a registered-member directory, role and contact details, and leadership-only enrollment controls.
+- [x] Add real team-member phone data to the protected directory and render each member’s saved phone detail rather than placeholder copy.
+- [x] Add regression coverage proving Team Management renders member email and phone contact details from real directory data.
+- [ ] Add production invitation delivery and pending-invitation lifecycle visibility after the domain-specific noreply email service is configured.

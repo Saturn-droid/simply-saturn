@@ -17,6 +17,7 @@ import NotFound from "@/pages/NotFound";
 import Pricing from "@/pages/Pricing";
 import Product from "@/pages/Product";
 import SignUp from "@/pages/SignUp";
+import Team from "@/pages/Team";
 import { Route, Switch } from "wouter";
 import ErrorBoundary from "./components/ErrorBoundary";
 import { ThemeProvider } from "./contexts/ThemeContext";
@@ -38,6 +39,7 @@ function Router() {
       <Route path="/app/calendar" component={Calendar} />
       <Route path="/app/contacts/:contactId" component={ContactDetail} />
       <Route path="/app/contacts" component={Contacts} />
+      <Route path="/app/team" component={Team} />
       <Route path="/app" component={Dashboard} />
       <Route path="/privacy" component={LegalPlaceholder} />
       <Route path="/terms" component={LegalPlaceholder} />

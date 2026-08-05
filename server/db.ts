@@ -52,7 +52,7 @@ export async function upsertUser(user: InsertUser): Promise<void> {
     };
     const updateSet: Record<string, unknown> = {};
 
-    const textFields = ["name", "email", "loginMethod"] as const;
+    const textFields = ["name", "email", "phone", "loginMethod"] as const;
     type TextField = (typeof textFields)[number];
 
     const assignNullable = (field: TextField) => {
@@ -410,6 +410,8 @@ export type WorkspaceTeamDirectoryMember = CalendarParticipantSuggestion & {
   kind: "team";
   userId: number;
   isOwner: boolean;
+  role: "admin" | "user";
+  phone: string | null;
 };
 
 export async function ensureWorkspaceOwnerTeamMembership(ownerUserId: number): Promise<void> {
@@ -443,13 +445,30 @@ export async function isWorkspaceTeamMember(input: {
   return Boolean(rows[0]);
 }
 
+export async function resolveWorkspaceOwnerUserId(memberUserId: number): Promise<number> {
+  const db = await getDb();
+  if (!db) return memberUserId;
+
+  const memberships = await db
+    .select({ ownerUserId: workspaceTeamMembers.ownerUserId })
+    .from(workspaceTeamMembers)
+    .where(and(
+      eq(workspaceTeamMembers.memberUserId, memberUserId),
+      eq(workspaceTeamMembers.status, "active"),
+    ))
+    .orderBy(desc(workspaceTeamMembers.updatedAt))
+    .limit(1);
+
+  return memberships[0]?.ownerUserId ?? memberUserId;
+}
+
 export async function listWorkspaceTeamMembers(ownerUserId: number): Promise<WorkspaceTeamDirectoryMember[]> {
   const db = await getDb();
   if (!db) return [];
 
   await ensureWorkspaceOwnerTeamMembership(ownerUserId);
   const rows = await db
-    .select({ userId: users.id, name: users.name, email: users.email })
+    .select({ userId: users.id, name: users.name, email: users.email, role: users.role, phone: users.phone })
     .from(workspaceTeamMembers)
     .innerJoin(users, eq(workspaceTeamMembers.memberUserId, users.id))
     .where(and(
@@ -467,6 +486,8 @@ export async function listWorkspaceTeamMembers(ownerUserId: number): Promise<Wor
       email: member.email!,
       userId: member.userId,
       isOwner: member.userId === ownerUserId,
+      role: member.role,
+      phone: member.phone,
     }));
 }
 
@@ -495,6 +516,44 @@ export async function addWorkspaceTeamMemberByEmail(input: {
 
   const directory = await listWorkspaceTeamMembers(input.ownerUserId);
   return directory.find((entry) => entry.userId === member.id);
+}
+
+export async function removeWorkspaceTeamMember(input: {
+  ownerUserId: number;
+  memberUserId: number;
+}): Promise<boolean> {
+  if (input.ownerUserId === input.memberUserId) return false;
+
+  const db = await getDb();
+  if (!db) throw new Error("Database is not available for workspace team membership.");
+
+  const member = await db
+    .select({ id: workspaceTeamMembers.id })
+    .from(workspaceTeamMembers)
+    .where(and(
+      eq(workspaceTeamMembers.ownerUserId, input.ownerUserId),
+      eq(workspaceTeamMembers.memberUserId, input.memberUserId),
+      eq(workspaceTeamMembers.status, "active"),
+    ))
+    .limit(1);
+
+  if (!member[0]) return false;
+
+  await db.delete(workspaceTeamMembers).where(eq(workspaceTeamMembers.id, member[0].id));
+  return true;
+}
+
+export async function updateWorkspaceMemberPhone(input: {
+  memberUserId: number;
+  phone: string | null;
+}): Promise<WorkspaceTeamDirectoryMember | undefined> {
+  const db = await getDb();
+  if (!db) throw new Error("Database is not available for workspace member details.");
+
+  await db.update(users).set({ phone: input.phone }).where(eq(users.id, input.memberUserId));
+  const ownerUserId = await resolveWorkspaceOwnerUserId(input.memberUserId);
+  const directory = await listWorkspaceTeamMembers(ownerUserId);
+  return directory.find((member) => member.userId === input.memberUserId);
 }
 
 export async function listCalendarEvents(ownerUserId: number): Promise<CalendarEventWithParticipants[]> {
