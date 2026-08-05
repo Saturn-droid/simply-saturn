@@ -7,6 +7,7 @@ import ContactDetail from "@/pages/ContactDetail";
 import Contacts from "@/pages/Contacts";
 import Dashboard from "@/pages/Dashboard";
 import Deals from "@/pages/Deals";
+import Documents from "@/pages/Documents";
 import Features from "@/pages/Features";
 import ForgotPassword from "@/pages/ForgotPassword";
 import Home from "@/pages/Home";
@@ -40,6 +41,7 @@ function Router() {
       <Route path="/app/inbox" component={Inbox} />
       <Route path="/app/calendar" component={Calendar} />
       <Route path="/app/deals" component={Deals} />
+      <Route path="/app/documents" component={Documents} />
       <Route path="/app/tasks" component={Tasks} />
       <Route path="/app/contacts/:contactId" component={ContactDetail} />
       <Route path="/app/contacts" component={Contacts} />

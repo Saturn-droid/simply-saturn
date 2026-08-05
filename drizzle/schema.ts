@@ -269,7 +269,34 @@ export const crmTasks = mysqlTable(
   ],
 );
 
+/**
+ * Owner-scoped document tracking records. File storage is intentionally
+ * separate; this workflow tracks operational document state and context.
+ */
+export const crmDocuments = mysqlTable(
+  "crmDocuments",
+  {
+    id: int("id").autoincrement().primaryKey(),
+    ownerUserId: int("ownerUserId").notNull().references(() => users.id),
+    contactId: int("contactId").references(() => crmContacts.id),
+    dealId: int("dealId").references(() => crmDeals.id),
+    name: varchar("name", { length: 240 }).notNull(),
+    documentType: mysqlEnum("documentType", ["listing", "offer", "disclosure", "contract", "compliance", "other"]).default("other").notNull(),
+    status: mysqlEnum("status", ["requested", "received", "review", "approved", "sent"]).default("requested").notNull(),
+    dueAt: timestamp("dueAt"),
+    notes: text("notes"),
+    createdAt: timestamp("createdAt").defaultNow().notNull(),
+    updatedAt: timestamp("updatedAt").defaultNow().onUpdateNow().notNull(),
+  },
+  (table) => [
+    index("crm_documents_owner_status_due_idx").on(table.ownerUserId, table.status, table.dueAt),
+    index("crm_documents_owner_contact_idx").on(table.ownerUserId, table.contactId),
+    index("crm_documents_owner_deal_idx").on(table.ownerUserId, table.dealId),
+  ],
+);
+
 export type CrmContact = typeof crmContacts.$inferSelect;
 export type ContactActivity = typeof contactActivities.$inferSelect;
 export type CrmDeal = typeof crmDeals.$inferSelect;
 export type CrmTask = typeof crmTasks.$inferSelect;
+export type CrmDocument = typeof crmDocuments.$inferSelect;

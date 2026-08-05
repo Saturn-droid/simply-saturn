@@ -19,7 +19,7 @@ const navigationItems: NavigationItem[] = [
   { label: "Deals", icon: Workflow, href: "/app/deals" },
   { label: "Calendar", icon: CalendarDays, href: "/app/calendar" },
   { label: "Tasks", icon: CheckSquare, href: "/app/tasks" },
-  { label: "Documents", icon: FileText },
+  { label: "Documents", icon: FileText, href: "/app/documents" },
   { label: "Marketing", icon: Megaphone },
   { label: "Automations", icon: Sparkles },
   { label: "Reports", icon: BarChart3 },
@@ -36,7 +36,7 @@ export default function DashboardLayout({ children, demoMode = false }: Dashboar
   const { user, loading, logout } = useAuth();
   const [mobileOpen, setMobileOpen] = useState(false);
   const [profileOpen, setProfileOpen] = useState(false);
-  const [activeItem, setActiveItem] = useState(location.startsWith("/app/calendar") ? "Calendar" : location.startsWith("/app/contacts") ? "Contacts" : location.startsWith("/app/deals") ? "Deals" : location.startsWith("/app/tasks") ? "Tasks" : location.startsWith("/app/inbox") ? "Inbox & Text" : location.startsWith("/app/team") ? "Administration" : "Dashboard");
+  const [activeItem, setActiveItem] = useState(location.startsWith("/app/calendar") ? "Calendar" : location.startsWith("/app/contacts") ? "Contacts" : location.startsWith("/app/deals") ? "Deals" : location.startsWith("/app/tasks") ? "Tasks" : location.startsWith("/app/documents") ? "Documents" : location.startsWith("/app/inbox") ? "Inbox & Text" : location.startsWith("/app/team") ? "Administration" : "Dashboard");
 
   if (!demoMode && loading) {
     return <div className="grid min-h-screen place-items-center bg-[#f8f7f1] text-sm font-bold text-[#5e637d]">Loading your workspace…</div>;
@@ -86,7 +86,7 @@ export default function DashboardLayout({ children, demoMode = false }: Dashboar
           <button type="button" aria-label="Open notifications" className="relative grid h-10 w-10 place-items-center rounded-xl border border-[#171b39]/9 bg-white text-[#4b506d] hover:border-[#50416f]/30 hover:text-[#50416f]"><Bell size={17} /><span className="absolute right-2.5 top-2.5 h-1.5 w-1.5 rounded-full bg-[#c99d62]" /></button>
           <div className="relative"><button type="button" onClick={() => setProfileOpen((open) => !open)} aria-expanded={profileOpen} aria-haspopup="menu" className="flex h-10 items-center gap-2 rounded-xl border border-[#171b39]/9 bg-white px-2 pr-2.5 text-left hover:border-[#50416f]/30"><span className="grid h-6 w-6 place-items-center rounded-lg bg-[#eae5d9] text-[0.6rem] font-extrabold text-[#4d416f]">{initials}</span><span className="hidden max-w-28 truncate text-xs font-extrabold text-[#353a5c] sm:block">{displayName}</span><ChevronDown size={14} className="text-[#7a7e91]" /></button>{profileOpen ? <div role="menu" className="absolute right-0 mt-2 w-52 overflow-hidden rounded-xl border border-[#171b39]/10 bg-white p-1.5 shadow-[0_20px_45px_rgba(26,30,59,.16)]"><div className="px-3 py-2.5"><p className="text-xs font-extrabold text-[#2c3154]">{displayName}</p><p className="mt-0.5 truncate text-[0.65rem] text-[#777c91]">{user?.email || "Demo workspace access"}</p></div><div className="h-px bg-[#171b39]/8" /><button role="menuitem" type="button" onClick={signOut} className="mt-1 flex w-full items-center gap-2 rounded-lg px-3 py-2.5 text-left text-xs font-bold text-[#5d516f] hover:bg-[#f4f1e9]"><UserRound size={14} />Sign out</button></div> : null}</div>
         </header>
-        <main className="relative p-4 sm:p-6 lg:p-8"><div aria-hidden="true" className="pointer-events-none absolute right-8 top-8 h-52 w-52 rounded-full bg-[#d1a467]/8 blur-3xl" /><div className="relative">{activeItem !== "Dashboard" && !location.startsWith("/app/calendar") && !location.startsWith("/app/contacts") && !location.startsWith("/app/deals") && !location.startsWith("/app/tasks") && !location.startsWith("/app/inbox") && !location.startsWith("/app/team") ? <div className="mb-5 flex items-center gap-3 rounded-xl border border-[#171b39]/9 bg-white/70 px-4 py-3 text-xs text-[#616780]"><span className="grid h-7 w-7 place-items-center rounded-lg bg-[#eee9de] text-[#5a4c7a]"><Sparkles size={14} /></span><span><strong className="font-extrabold text-[#333958]">{activeItem}</strong> is represented in this app shell and ready for its connected product module.</span></div> : null}{children}</div></main>
+        <main className="relative p-4 sm:p-6 lg:p-8"><div aria-hidden="true" className="pointer-events-none absolute right-8 top-8 h-52 w-52 rounded-full bg-[#d1a467]/8 blur-3xl" /><div className="relative">{activeItem !== "Dashboard" && !location.startsWith("/app/calendar") && !location.startsWith("/app/contacts") && !location.startsWith("/app/deals") && !location.startsWith("/app/tasks") && !location.startsWith("/app/documents") && !location.startsWith("/app/inbox") && !location.startsWith("/app/team") ? <div className="mb-5 flex items-center gap-3 rounded-xl border border-[#171b39]/9 bg-white/70 px-4 py-3 text-xs text-[#616780]"><span className="grid h-7 w-7 place-items-center rounded-lg bg-[#eee9de] text-[#5a4c7a]"><Sparkles size={14} /></span><span><strong className="font-extrabold text-[#333958]">{activeItem}</strong> is represented in this app shell and ready for its connected product module.</span></div> : null}{children}</div></main>
       </div>
     </div>
   );

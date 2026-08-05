@@ -66,6 +66,18 @@ const taskPayloadSchema = z.object({
   priority: taskPrioritySchema.default("normal"),
 });
 
+const documentTypeSchema = z.enum(["listing", "offer", "disclosure", "contract", "compliance", "other"]);
+const documentStatusSchema = z.enum(["requested", "received", "review", "approved", "sent"]);
+const documentPayloadSchema = z.object({
+  contactId: z.number().int().positive().optional(),
+  dealId: z.number().int().positive().optional(),
+  name: z.string().trim().min(1).max(240),
+  documentType: documentTypeSchema.default("other"),
+  status: documentStatusSchema.default("requested"),
+  dueAt: z.coerce.date().optional(),
+  notes: z.string().trim().max(4000).optional(),
+});
+
 async function validateCalendarEventPayload(ownerUserId: number, input: z.infer<typeof calendarEventPayloadSchema>) {
   if (input.endsAt.getTime() <= input.startsAt.getTime()) {
     throw new TRPCError({ code: "BAD_REQUEST", message: "End time must be later than the start time." });
@@ -283,6 +295,24 @@ export const appRouter = router({
         const task = await db.setCrmTaskStatus({ ownerUserId: ctx.user.id, ...input });
         if (!task) throw new TRPCError({ code: "NOT_FOUND", message: "That task is unavailable." });
         return task;
+      }),
+  }),
+
+  documents: router({
+    list: protectedProcedure.query(({ ctx }) => db.listCrmDocuments(ctx.user.id)),
+    create: protectedProcedure
+      .input(documentPayloadSchema)
+      .mutation(async ({ ctx, input }) => {
+        const document = await db.createCrmDocument({ ownerUserId: ctx.user.id, ...input });
+        if (!document) throw new TRPCError({ code: "NOT_FOUND", message: "Choose a contact or deal that belongs to this workspace." });
+        return document;
+      }),
+    setStatus: protectedProcedure
+      .input(z.object({ documentId: z.number().int().positive(), status: documentStatusSchema }))
+      .mutation(async ({ ctx, input }) => {
+        const document = await db.setCrmDocumentStatus({ ownerUserId: ctx.user.id, ...input });
+        if (!document) throw new TRPCError({ code: "NOT_FOUND", message: "That document is unavailable." });
+        return document;
       }),
   }),
 

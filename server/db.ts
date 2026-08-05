@@ -12,6 +12,7 @@ import {
   contactActivities,
   crmContacts,
   crmDeals,
+  crmDocuments,
   crmTasks,
   workspaceTeamMembers,
   SmsConversation,
@@ -118,6 +119,10 @@ export type DealStageValue = (typeof dealStageValues)[number];
 export const taskPriorityValues = ["low", "normal", "high"] as const;
 export type TaskPriorityValue = (typeof taskPriorityValues)[number];
 export type TaskStatusValue = "open" | "completed";
+export const documentTypeValues = ["listing", "offer", "disclosure", "contract", "compliance", "other"] as const;
+export type DocumentTypeValue = (typeof documentTypeValues)[number];
+export const documentStatusValues = ["requested", "received", "review", "approved", "sent"] as const;
+export type DocumentStatusValue = (typeof documentStatusValues)[number];
 
 function parseContactTypes(typesJson: string): ContactTypeValue[] {
   try {
@@ -434,6 +439,88 @@ export async function setCrmTaskStatus(input: { ownerUserId: number; taskId: num
   if (!result[0]?.affectedRows) return undefined;
   const tasks = await listCrmTasks(input.ownerUserId);
   return tasks.find((task) => task.id === input.taskId);
+}
+
+export type CrmDocumentWithContext = {
+  id: number;
+  ownerUserId: number;
+  contactId: number | null;
+  contactName: string | null;
+  dealId: number | null;
+  dealTitle: string | null;
+  name: string;
+  documentType: DocumentTypeValue;
+  status: DocumentStatusValue;
+  dueAt: Date | null;
+  notes: string | null;
+  createdAt: Date;
+  updatedAt: Date;
+};
+
+export async function listCrmDocuments(ownerUserId: number): Promise<CrmDocumentWithContext[]> {
+  const db = await getDb();
+  if (!db) return [];
+  return db
+    .select({
+      id: crmDocuments.id,
+      ownerUserId: crmDocuments.ownerUserId,
+      contactId: crmDocuments.contactId,
+      contactName: crmContacts.displayName,
+      dealId: crmDocuments.dealId,
+      dealTitle: crmDeals.title,
+      name: crmDocuments.name,
+      documentType: crmDocuments.documentType,
+      status: crmDocuments.status,
+      dueAt: crmDocuments.dueAt,
+      notes: crmDocuments.notes,
+      createdAt: crmDocuments.createdAt,
+      updatedAt: crmDocuments.updatedAt,
+    })
+    .from(crmDocuments)
+    .leftJoin(crmContacts, eq(crmDocuments.contactId, crmContacts.id))
+    .leftJoin(crmDeals, eq(crmDocuments.dealId, crmDeals.id))
+    .where(eq(crmDocuments.ownerUserId, ownerUserId))
+    .orderBy(asc(crmDocuments.status), asc(crmDocuments.dueAt), desc(crmDocuments.updatedAt));
+}
+
+export async function createCrmDocument(input: {
+  ownerUserId: number;
+  contactId?: number;
+  dealId?: number;
+  name: string;
+  documentType: DocumentTypeValue;
+  status: DocumentStatusValue;
+  dueAt?: Date;
+  notes?: string;
+}) {
+  const db = await getDb();
+  if (!db) throw new Error("Database is not available for documents.");
+  if (input.contactId && !(await getCrmContact({ ownerUserId: input.ownerUserId, contactId: input.contactId }))) return undefined;
+  if (input.dealId && !(await listCrmDeals(input.ownerUserId)).some((deal) => deal.id === input.dealId)) return undefined;
+  const [created] = await db.insert(crmDocuments).values({
+    ownerUserId: input.ownerUserId,
+    contactId: input.contactId ?? null,
+    dealId: input.dealId ?? null,
+    name: input.name,
+    documentType: input.documentType,
+    status: input.status,
+    dueAt: input.dueAt ?? null,
+    notes: input.notes || null,
+  }).$returningId();
+  const documents = await listCrmDocuments(input.ownerUserId);
+  return documents.find((document) => document.id === created.id);
+}
+
+export async function setCrmDocumentStatus(input: { ownerUserId: number; documentId: number; status: DocumentStatusValue }) {
+  const db = await getDb();
+  if (!db) throw new Error("Database is not available for documents.");
+  const result = await db
+    .update(crmDocuments)
+    .set({ status: input.status })
+    .where(and(eq(crmDocuments.ownerUserId, input.ownerUserId), eq(crmDocuments.id, input.documentId)));
+  if (!result[0]?.affectedRows) return undefined;
+  const documents = await listCrmDocuments(input.ownerUserId);
+  return documents.find((document) => document.id === input.documentId);
 }
 
 export async function listSmsConversations(ownerUserId: number): Promise<SmsConversation[]> {
