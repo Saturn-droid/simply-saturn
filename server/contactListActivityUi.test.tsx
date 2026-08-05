@@ -27,6 +27,7 @@ const trpcMocks = vi.hoisted(() => ({
   recordActivityUseMutation: vi.fn(),
   sendUseMutation: vi.fn(),
   setStatusUseMutation: vi.fn(),
+  teamListUseQuery: vi.fn(),
   threadUseQuery: vi.fn(),
   useUtils: vi.fn(),
 }));
@@ -37,7 +38,7 @@ vi.mock("@/_core/hooks/useAuth", () => ({ useAuth: () => ({ isAuthenticated: tru
 vi.mock("@/components/ui/dialog", () => ({ Dialog: ({ children }: { children: React.ReactNode }) => <div>{children}</div>, DialogContent: ({ children }: { children: React.ReactNode }) => <div>{children}</div>, DialogDescription: ({ children }: { children: React.ReactNode }) => <p>{children}</p>, DialogFooter: ({ children }: { children: React.ReactNode }) => <div>{children}</div>, DialogHeader: ({ children }: { children: React.ReactNode }) => <div>{children}</div>, DialogTitle: ({ children }: { children: React.ReactNode }) => <h2>{children}</h2>, DialogClose: ({ children }: { children: React.ReactNode }) => <>{children}</>, useDialogComposition: () => null }));
 vi.mock("sonner", () => ({ toast: { error: vi.fn(), success: vi.fn() } }));
 vi.mock("wouter", () => ({ useLocation: () => ["/app/inbox", vi.fn()], useSearch: () => routing.search }));
-vi.mock("@/lib/trpc", () => ({ trpc: { useUtils: trpcMocks.useUtils, contacts: { create: { useMutation: trpcMocks.createUseMutation }, list: { useQuery: trpcMocks.contactsListUseQuery }, recordActivity: { useMutation: trpcMocks.recordActivityUseMutation }, setStatus: { useMutation: trpcMocks.setStatusUseMutation } }, sms: { configuration: { useQuery: trpcMocks.configurationUseQuery }, list: { useQuery: trpcMocks.listUseQuery }, thread: { useQuery: trpcMocks.threadUseQuery }, send: { useMutation: trpcMocks.sendUseMutation } } } }));
+vi.mock("@/lib/trpc", () => ({ trpc: { useUtils: trpcMocks.useUtils, contacts: { create: { useMutation: trpcMocks.createUseMutation }, list: { useQuery: trpcMocks.contactsListUseQuery }, recordActivity: { useMutation: trpcMocks.recordActivityUseMutation }, setStatus: { useMutation: trpcMocks.setStatusUseMutation } }, team: { list: { useQuery: trpcMocks.teamListUseQuery } }, sms: { configuration: { useQuery: trpcMocks.configurationUseQuery }, list: { useQuery: trpcMocks.listUseQuery }, thread: { useQuery: trpcMocks.threadUseQuery }, send: { useMutation: trpcMocks.sendUseMutation } } } }));
 
 import Contacts from "../client/src/pages/Contacts";
 import Inbox from "../client/src/pages/Inbox";
@@ -51,6 +52,7 @@ beforeEach(() => {
   trpcMocks.configurationUseQuery.mockReturnValue({ data: { configured: true, dispatchEnabled: false, restrictionReason: "Delivery deferred" } });
   trpcMocks.listUseQuery.mockReturnValue({ data: [], isLoading: false });
   trpcMocks.threadUseQuery.mockReturnValue({ data: undefined, isLoading: false });
+  trpcMocks.teamListUseQuery.mockReturnValue({ data: [], isLoading: false });
   trpcMocks.sendUseMutation.mockImplementation((options: { onSuccess?: (result: { message: { conversationId: number }; idempotent: boolean }) => void }) => ({
     isPending: false,
     mutate: () => {

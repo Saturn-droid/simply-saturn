@@ -10,7 +10,9 @@ const trpcMocks = vi.hoisted(() => ({
   listUseQuery: vi.fn(),
   recordActivityUseMutation: vi.fn(),
   sendUseMutation: vi.fn(),
+  teamListUseQuery: vi.fn(),
   threadUseQuery: vi.fn(),
+  contactsListUseQuery: vi.fn(),
   useUtils: vi.fn(),
 }));
 
@@ -20,7 +22,7 @@ vi.mock("@/_core/hooks/useAuth", () => ({ useAuth: () => ({ isAuthenticated: tru
 vi.mock("@/components/ui/dialog", () => ({ Dialog: ({ children }: { children: React.ReactNode }) => <div>{children}</div>, DialogClose: ({ children }: { children: React.ReactNode }) => <>{children}</>, DialogContent: ({ children }: { children: React.ReactNode }) => <div>{children}</div>, DialogDescription: ({ children }: { children: React.ReactNode }) => <p>{children}</p>, DialogFooter: ({ children }: { children: React.ReactNode }) => <div>{children}</div>, DialogHeader: ({ children }: { children: React.ReactNode }) => <div>{children}</div>, DialogTitle: ({ children }: { children: React.ReactNode }) => <h2>{children}</h2>, useDialogComposition: () => null }));
 vi.mock("sonner", () => ({ toast: { error: vi.fn(), success: vi.fn() } }));
 vi.mock("wouter", () => ({ useLocation: () => ["/app/inbox", vi.fn()], useSearch: () => routing.search }));
-vi.mock("@/lib/trpc", () => ({ trpc: { useUtils: trpcMocks.useUtils, contacts: { recordActivity: { useMutation: trpcMocks.recordActivityUseMutation } }, sms: { configuration: { useQuery: trpcMocks.configurationUseQuery }, list: { useQuery: trpcMocks.listUseQuery }, thread: { useQuery: trpcMocks.threadUseQuery }, send: { useMutation: trpcMocks.sendUseMutation } } } }));
+vi.mock("@/lib/trpc", () => ({ trpc: { useUtils: trpcMocks.useUtils, contacts: { list: { useQuery: trpcMocks.contactsListUseQuery }, recordActivity: { useMutation: trpcMocks.recordActivityUseMutation } }, team: { list: { useQuery: trpcMocks.teamListUseQuery } }, sms: { configuration: { useQuery: trpcMocks.configurationUseQuery }, list: { useQuery: trpcMocks.listUseQuery }, thread: { useQuery: trpcMocks.threadUseQuery }, send: { useMutation: trpcMocks.sendUseMutation } } } }));
 
 import Inbox from "../client/src/pages/Inbox";
 
@@ -32,6 +34,8 @@ beforeEach(() => {
   trpcMocks.configurationUseQuery.mockReturnValue({ data: { configured: true, dispatchEnabled: false, restrictionReason: "Delivery deferred" } });
   trpcMocks.listUseQuery.mockReturnValue({ data: [], isLoading: false });
   trpcMocks.threadUseQuery.mockReturnValue({ data: undefined, isLoading: false });
+  trpcMocks.contactsListUseQuery.mockReturnValue({ data: [{ id: 81, displayName: "Tiffany Hoskins", email: "tiffany@example.com" }], isLoading: false });
+  trpcMocks.teamListUseQuery.mockReturnValue({ data: [{ id: 57, userId: 57, displayName: "Alex Agent", email: "alex@example.com", role: "user", isOwner: false, phone: "+15557654321" }], isLoading: false });
   trpcMocks.sendUseMutation.mockReturnValue({ isPending: false, mutate: vi.fn() });
   trpcMocks.recordActivityUseMutation.mockImplementation((options: { onSuccess?: (contact: { lastEmailAt: Date | null; lastCallAt: Date | null }, variables: { channel: "email" | "call" }) => void }) => ({
     isPending: false,
@@ -70,5 +74,20 @@ describe("Inbox contact handoff completion", () => {
     await user.click(screen.getByRole("button", { name: "Mark call handoff complete" }));
     expect(mutate).toHaveBeenCalledWith({ contactId: 81, channel: "call" });
     expect(screen.getByRole("status").textContent).toContain("Last call contact updated");
+  });
+
+  it("suggests matching contacts and team members while allowing a complete external email address", async () => {
+    routing.search = "?channel=email";
+    const user = userEvent.setup();
+    render(<Inbox />);
+
+    const recipientInput = screen.getByLabelText("Email recipients");
+    await user.type(recipientInput, "alex");
+    await user.click(screen.getByRole("option", { name: /Alex Agent/i }));
+    expect(screen.getByText("Alex Agent")).toBeTruthy();
+
+    await user.type(recipientInput, "outside@example.org");
+    await user.click(screen.getByRole("button", { name: /Add outside@example.org as an external recipient/i }));
+    expect(screen.getByText("outside@example.org")).toBeTruthy();
   });
 });

@@ -72,3 +72,5 @@
 - [x] Add real team-member phone data to the protected directory and render each member’s saved phone detail rather than placeholder copy.
 - [x] Add regression coverage proving Team Management renders member email and phone contact details from real directory data.
 - [ ] Add production invitation delivery and pending-invitation lifecycle visibility after the domain-specific noreply email service is configured.
+- [x] Add Inbox email-recipient autocomplete that suggests matching contacts and registered team members while allowing full external email addresses without requiring outbound email delivery.
+- [x] Add regression coverage for email-recipient suggestions, selection, and external-address entry in the Inbox composer.
